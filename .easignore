@@ -1,0 +1,68 @@
+# --- Dependencies (rebuilt on EAS) ---
+
+node_modules/
+
+# --- Native folders generated locally (Managed workflow prebuilds in the cloud) ---
+
+android/
+ios/
+
+# --- Expo / Metro / caches ---
+
+.expo/
+.expo-shared/
+dist/
+web-build/
+.metro-health-check\*
+.gradle/
+.cache/
+
+# --- VCS & IDE ---
+
+.git/
+.gitignore
+.idea/
+.vscode/
+.husky/
+
+# --- Logs & test output ---
+
+_.log
+npm-debug._
+yarn-debug._
+yarn-error._
+coverage/
+**tests**/
+
+# --- OS junk ---
+
+.DS_Store
+Thumbs.db
+
+# --- Local env / build metadata ---
+
+.env\*
+\*.tsbuildinfo
+expo-env.d.ts
+
+# --- Keys & certs (never upload secrets) ---
+
+_.p8
+_.p12
+_.pem
+_.key
+_.jks
+_.keystore
+\*.mobileprovision
+
+# --- Large files you likely don't need in the build context ---
+
+_.zip
+_.tgz
+_.7z
+_.psd
+_.ai
+_.sketch
+_.mov
+_.mp4
+\*.wav
