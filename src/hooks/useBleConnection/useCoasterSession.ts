@@ -6,6 +6,7 @@ import { useReconnectHandler } from "./useRecconectHandler";
 import { useBLEWrapper } from "../MockBleProvider/useBleWrapper";
 import { getSelectedGender } from "../../utils/storage";
 import { BLE_DEVICE, BLE_PROTOCOL, BLE_TIMEOUTS } from "../../constants/bleConstants";
+import { SESSION_CONFIG } from "../../constants/sessionConstants";
 
 
 /**
@@ -46,8 +47,8 @@ export function useCoasterSession(config: CoasterSessionConfig) {
 
     const intervalIndex = mapDLToInterval(data.index);
 
-    if (intervalIndex < 0 || intervalIndex > 41) {
-      console.warn(`⚠️ Interval ${intervalIndex} out of range`);
+    if (intervalIndex < 0 || intervalIndex >= SESSION_CONFIG.totalIntervals) {
+      console.warn(`⚠️ Interval ${intervalIndex} out of range (max: ${SESSION_CONFIG.totalIntervals - 1})`);
       return;
     }
 

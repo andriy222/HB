@@ -44,15 +44,14 @@ export const STAMINA_PENALTY = {
     /** No penalty if >= 500ml consumed */
     ml500Plus: 0,
 
-    /** Moderate penalty if 250-499ml consumed */
-    // ml250to499: -15,
-    ml250to499: -60,
-    /** Heavy penalty if 1-249ml consumed */
-    // ml1to249: -30,
-      ml1to249: -120,
-    /** Maximum penalty if 0ml consumed */
-    // ml0: -40,
-    ml0: -160,
+    /** Moderate penalty if 250-499ml consumed (PRD: -15 pts) */
+    ml250to499: -15,
+
+    /** Heavy penalty if 1-249ml consumed (PRD: -30 pts) */
+    ml1to249: -30,
+
+    /** Maximum penalty if 0ml consumed (PRD: -40 pts) */
+    ml0: -40,
   },
 
   /** Penalties for regular intervals (based on % shortage) */
@@ -60,18 +59,17 @@ export const STAMINA_PENALTY = {
     /** No penalty if target met */
     shortage0: 0,
 
-    /** Small penalty if 0-25% shortage */
-    // shortage0to25: -2,
-      shortage0to25: -8,
-    /** Medium penalty if 25-50% shortage */
-    // shortage25to50: -4,
-      shortage25to50: -16,
-    /** Large penalty if 50-75% shortage */
-    // shortage50to75: -6,
-     shortage50to75: -24,
-    /** Maximum penalty if 75-100% shortage */
-    // shortage75to100: -6.5,
-    shortage75to100: -26,
+    /** Small penalty if 0-25% shortage (PRD: -2 pts) */
+    shortage0to25: -2,
+
+    /** Medium penalty if 25-50% shortage (PRD: -4 pts) */
+    shortage25to50: -4,
+
+    /** Large penalty if 50-75% shortage (PRD: -6 pts) */
+    shortage50to75: -6,
+
+    /** Maximum penalty if 75-100% shortage (PRD: -6.5 pts) */
+    shortage75to100: -6.5,
   },
 } as const;
 
