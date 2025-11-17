@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import AuthBackground from "../../../UI/layout/backgrounds/AuthBackground";
 import { clearStorage, debugStorage, storage } from "../../../store/bleStore";
 import Podium from "../../../components/Podium/Podium";
@@ -18,7 +18,12 @@ import PaperProgressBar from "../../../UI/PaperProgressBar/PaperProgressBar";
 import { SESSION_CONFIG } from "../../../constants/sessionConstants";
 import { textPresets } from "../../../theme";
 import { useSession } from "../../../hooks/useBleConnection/useSession";
-import { getBestRun } from "../../../storage/appStorage";
+import {
+  getBestRun,
+  getLastRaceDistance,
+  setLastRaceDistance,
+  clearLastRaceDistance,
+} from "../../../storage/appStorage";
 
 const trophy = require("../../../../assets/win.png");
 const { width } = Dimensions.get("window");
@@ -26,30 +31,28 @@ const { width } = Dimensions.get("window");
 const Main = () => {
   const [selectedGender, setSelectedGender] = useState<Gender>("male");
   const [bestRun, setBestRun] = useState<number>(0);
+  const [lastRaceDistance, setLastRaceDistanceState] = useState<number>(0);
+  const [wasActive, setWasActive] = useState(false);
 
   const session = useSession();
 
-  const finishedDistanceRef = useRef<number>(0);
-  const wasActiveRef = useRef(false);
+  const isFinished = !session.isActive && lastRaceDistance > 0;
 
-  const isFinished = !session.isActive && finishedDistanceRef.current > 0;
-
+  // Завантажити last race distance при mount
   useEffect(() => {
-    if (session.isActive && session.distance > 0) {
-      finishedDistanceRef.current = session.distance;
-    }
-  }, [session.isActive, session.distance]);
+    const distance = getLastRaceDistance();
+    setLastRaceDistanceState(distance);
+  }, []);
 
+  // Зберегти distance при завершенні
   useEffect(() => {
-    if (wasActiveRef.current && !session.isActive) {
-      console.log("🏁 Finish! Distance:", finishedDistanceRef.current);
+    if (wasActive && !session.isActive && session.distance > 0) {
+      setLastRaceDistance(session.distance);
+      setLastRaceDistanceState(session.distance);
+      console.log("🏁 Race finished! Saved:", session.distance);
     }
-    wasActiveRef.current = session.isActive;
-  }, [session.isActive]);
-
-  function clear() {
-    clearStorage();
-  }
+    setWasActive(session.isActive);
+  }, [session.isActive, session.distance, wasActive]);
 
   useEffect(() => {
     const best = getBestRun();
@@ -61,7 +64,6 @@ const Main = () => {
   useEffect(() => {
     debugStorage();
     const gender = getSelectedGender();
-    console.log(gender);
     setSelectedGender(gender);
   }, [storage]);
 
@@ -98,7 +100,8 @@ const Main = () => {
       return;
     }
     console.log("🏁 Starting new race...");
-    finishedDistanceRef.current = 0;
+    clearLastRaceDistance();
+    setLastRaceDistanceState(0);
     session.start(selectedGender);
   }
 
@@ -145,7 +148,7 @@ const Main = () => {
             <View style={styles.finish}>
               <Image source={trophy} style={styles.trophy} />
               <Text style={styles.finishDistance}>
-                {session.formatDistance(finishedDistanceRef.current)}
+                {session.formatDistance(lastRaceDistance)}
                 <Text style={styles.finishDistanceKM}> km</Text>
               </Text>
             </View>
@@ -165,12 +168,7 @@ const Main = () => {
           )}
 
           {!session.isActive && (
-            <PaperButton
-              onPress={handleStart}
-              variant="big"
-              style={styles.btn}
-              disabled={session.isActive}
-            >
+            <PaperButton onPress={handleStart} variant="big" style={styles.btn}>
               Start new Race
             </PaperButton>
           )}
@@ -211,11 +209,6 @@ const styles = StyleSheet.create({
   },
   progressText: {
     ...textPresets.progressText,
-  },
-  staminaText: {
-    ...textPresets.progressText,
-    fontSize: 14,
-    marginTop: 5,
   },
   timeText: {
     ...textPresets.progressText,

@@ -149,7 +149,7 @@ export const STORAGE_KEYS = {
   ACTIVE_SESSION: "hybit:activeSession",
   LAST_UPDATE: "hybit:lastUpdate",
   BEST_RUN: "hybit:bestRun",
-
+  LAST_RACE_DISTANCE: "race:lastDistance",
   GENDER: "user:gender",
   HYDRATION_GOAL_PER_PERIOD: "hydration:goalPerPeriod",
   HYDRATION_PERIOD_MIN: "hydration:periodMin",
@@ -159,9 +159,7 @@ export const STORAGE_KEYS = {
   ONBOARDING_COMPLETE: "app:onboardingComplete",
 } as const;
 
-/**
- * Best Run Management
- */
+
 export interface BestRun {
   distance: number;
   stamina: number;
@@ -193,4 +191,17 @@ export function updateBestRunIfBetter(distance: number, stamina: number, session
   }
 
   return false;
+}
+
+
+export function getLastRaceDistance(): number {
+  return mmkvStorage.getNumber(STORAGE_KEYS.LAST_RACE_DISTANCE) ?? 0;
+}
+
+export function setLastRaceDistance(distance: number): void {
+  mmkvStorage.set(STORAGE_KEYS.LAST_RACE_DISTANCE, distance);
+}
+
+export function clearLastRaceDistance(): void {
+  mmkvStorage.delete(STORAGE_KEYS.LAST_RACE_DISTANCE);
 }

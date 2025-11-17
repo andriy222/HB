@@ -1,39 +1,28 @@
-/**
- * Connection Guard Component
- *
- * Блокує можливість починати гонку коли немає всіх підключень
- */
-
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { useGlobalConnectionMonitor } from '../../hooks/useConnectionMonitor';
+import React from "react";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { useGlobalConnectionMonitor } from "../../hooks/useConnectionMonitor";
 
 interface ConnectionGuardProps {
   children: React.ReactNode;
   onBlockedPress?: () => void;
 }
 
-/**
- * Обгортає функціонал що потребує всіх підключень
- * Показує блокувальний екран коли підключення відсутні
- */
-export function ConnectionGuard({ children, onBlockedPress }: ConnectionGuardProps) {
+export function ConnectionGuard({
+  children,
+  onBlockedPress,
+}: ConnectionGuardProps) {
   const monitor = useGlobalConnectionMonitor();
 
-  // Якщо всі підключення є - показуємо дітей
   if (monitor.hasAllConnections) {
     return <>{children}</>;
   }
 
-  // Інакше показуємо блокувальний екран
   return (
     <View style={styles.blockedContainer}>
       <View style={styles.blockedContent}>
         <Text style={styles.blockedIcon}>⚠️</Text>
-        <Text style={styles.blockedTitle}>Неможливо почати</Text>
-        <Text style={styles.blockedMessage}>
-          Для початку потрібні всі підключення
-        </Text>
+        <Text style={styles.blockedTitle}>Unable to Start</Text>
+        <Text style={styles.blockedMessage}>Needs Connection</Text>
 
         <View style={styles.missingList}>
           {monitor.missingConnections.map((connection) => (
@@ -48,7 +37,7 @@ export function ConnectionGuard({ children, onBlockedPress }: ConnectionGuardPro
 
         {onBlockedPress && (
           <TouchableOpacity style={styles.fixButton} onPress={onBlockedPress}>
-            <Text style={styles.fixButtonText}>Налаштувати підключення</Text>
+            <Text style={styles.fixButtonText}>set Connection</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -56,9 +45,6 @@ export function ConnectionGuard({ children, onBlockedPress }: ConnectionGuardPro
   );
 }
 
-/**
- * Хук для перевірки чи можна починати гонку
- */
 export function useCanStartRace(): boolean {
   const monitor = useGlobalConnectionMonitor();
   return monitor.canStartRace;
@@ -66,12 +52,12 @@ export function useCanStartRace(): boolean {
 
 function getMissingConnectionLabel(connection: string): string {
   switch (connection) {
-    case 'internet':
-      return 'Інтернет';
-    case 'bluetooth':
-      return 'Bluetooth';
-    case 'coaster':
-      return 'Coaster пристрій';
+    case "internet":
+      return "Інтернет";
+    case "bluetooth":
+      return "Bluetooth";
+    case "coaster":
+      return "Coaster пристрій";
     default:
       return connection;
   }
@@ -80,20 +66,20 @@ function getMissingConnectionLabel(connection: string): string {
 const styles = StyleSheet.create({
   blockedContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.8)",
     padding: 24,
   },
   blockedContent: {
-    backgroundColor: '#1f2937',
+    backgroundColor: "#1f2937",
     borderRadius: 16,
     padding: 32,
-    alignItems: 'center',
+    alignItems: "center",
     maxWidth: 400,
-    width: '100%',
+    width: "100%",
     borderWidth: 2,
-    borderColor: '#ef4444',
+    borderColor: "#ef4444",
   },
   blockedIcon: {
     fontSize: 64,
@@ -101,48 +87,48 @@ const styles = StyleSheet.create({
   },
   blockedTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#f9fafb',
+    fontWeight: "bold",
+    color: "#f9fafb",
     marginBottom: 8,
   },
   blockedMessage: {
     fontSize: 16,
-    color: '#9ca3af',
-    textAlign: 'center',
+    color: "#9ca3af",
+    textAlign: "center",
     marginBottom: 24,
   },
   missingList: {
-    width: '100%',
+    width: "100%",
     marginBottom: 24,
   },
   missingItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 8,
   },
   missingDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#ef4444',
+    backgroundColor: "#ef4444",
     marginRight: 12,
   },
   missingText: {
     fontSize: 16,
-    color: '#f9fafb',
-    fontWeight: '500',
+    color: "#f9fafb",
+    fontWeight: "500",
   },
   fixButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: "#3b82f6",
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
-    width: '100%',
+    width: "100%",
   },
   fixButtonText: {
-    color: '#ffffff',
+    color: "#ffffff",
     fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
+    fontWeight: "600",
+    textAlign: "center",
   },
 });

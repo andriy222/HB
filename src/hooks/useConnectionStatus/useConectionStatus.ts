@@ -29,7 +29,6 @@ export function useConnectionStatus(): ConnectionStatus {
     }
   }, []);
 
-  // Оновлюємо coaster статус у глобальному сторі
   useEffect(() => {
     const isCoasterConnected = linkUp && !!connectedDevice;
     connectionStore.updateCoaster(isCoasterConnected);

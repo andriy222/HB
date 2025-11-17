@@ -5,8 +5,8 @@ import {
   getLastDeviceId,
   setLastDeviceId,
 } from "../../utils/storage";
+import { connectionStore } from "../useConnectionMonitor";
 
-// Import mockCoaster for data generation
 let mockCoaster: any = null;
 try {
   const module = require("./MockCoaster");
@@ -33,7 +33,6 @@ export const useMockBleScan = () => {
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [noTargetFound, setNoTargetFound] = useState(false);
 
-  // Restore connection on mount
   useEffect(() => {
     const savedDeviceId = getLastDeviceId();
     console.log("📱 [MOCK] Checking saved device:", savedDeviceId);
@@ -43,7 +42,6 @@ export const useMockBleScan = () => {
       setConnectedDevice(MOCK_DEVICE);
       setLinkUp(true);
 
-      // Generate initial logs if mockCoaster available
       if (mockCoaster && !mockCoaster.getState().connected) {
         mockCoaster.generateLogs(100);
         console.log("📊 [MOCK] Generated 100 initial logs");
@@ -87,7 +85,6 @@ export const useMockBleScan = () => {
         setIsConnecting(false);
         setConnectingDeviceId(null);
 
-
         setLastDeviceId(MOCK_DEVICE.id);
         console.log("💾 [MOCK] Saved device ID");
 
@@ -106,10 +103,13 @@ export const useMockBleScan = () => {
     setConnectedDevice(null);
     setLinkUp(false);
 
-
     clearLastDeviceId();
     console.log("💾 [MOCK] Cleared device ID");
   };
+
+  useEffect(() => {
+    connectionStore.updateBle(linkUp, isReconnecting);
+  }, [linkUp, isReconnecting]);
 
   return {
     devices,

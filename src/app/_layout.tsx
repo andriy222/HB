@@ -69,13 +69,10 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <PaperProvider theme={theme}>
         <Stack screenOptions={{ headerShown: false }}>
-          {/* <Stack> */}
           <Stack.Screen name="index" />
           <Stack.Screen name="welcome" />
           <Stack.Screen name="(on-boarding)" />
           <Stack.Screen name="(main)" />
-          {/* Dev tools disabled - use BLE_CONFIG.USE_MOCK_BLE constant instead */}
-          {/* <Stack.Screen name="devtools" /> */}
         </Stack>
       </PaperProvider>
     </SafeAreaProvider>

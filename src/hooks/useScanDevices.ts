@@ -15,7 +15,7 @@ export const useBleScan = () => {
   const [noTargetFound, setNoTargetFound] = useState(false);
 
   const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
-  const [linkUp, setLinkUp] = useState(false); // true when BLE link is established
+  const [linkUp, setLinkUp] = useState(false); 
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectingDeviceId, setConnectingDeviceId] = useState<string | null>(
     null
@@ -32,7 +32,7 @@ export const useBleScan = () => {
   const reconnectActiveRef = useRef(false);
 
   const TARGET_NAME = BLE_DEVICE.TARGET_NAME;
-  const TARGET_SERVICE = BLE_DEVICE.SERVICE_UUID; 
+  const TARGET_SERVICE = BLE_DEVICE.SERVICE_UUID.toLowerCase(); 
 
   useEffect(() => {
     managerRef.current = new BleManager();
@@ -104,7 +104,7 @@ export const useBleScan = () => {
     }
     setConnectedDevice(null);
     setLinkUp(false);
-    // User initiated disconnect â€" don't auto-reconnect next launch
+
     await clearLastDeviceId();
     autoReconnectAttemptsRef.current = 0;
     userInitiatedDisconnectRef.current = false;
