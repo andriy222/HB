@@ -18,6 +18,13 @@ jest.mock('expo-device', () => ({
   deviceName: 'Test Device',
 }));
 
+// Mock AppState for React Native
+jest.mock('react-native/Libraries/AppState/AppState', () => ({
+  addEventListener: jest.fn(() => ({ remove: jest.fn() })),
+  removeEventListener: jest.fn(),
+  currentState: 'active',
+}));
+
 // Silence console warnings in tests
 global.console = {
   ...console,
