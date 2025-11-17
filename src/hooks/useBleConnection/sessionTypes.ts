@@ -1,5 +1,8 @@
 import { Gender } from "../../utils/storage";
+import { SESSION_CONFIG } from "../../constants/sessionConstants";
 
+// Re-export for backward compatibility
+export { SESSION_CONFIG };
 
 export interface SessionConfig {
   maxStamina: number; // 300
@@ -8,14 +11,6 @@ export interface SessionConfig {
   intervalDuration: number; // 10 minutes
   totalIntervals: number; // 42
 }
-
-export const SESSION_CONFIG: SessionConfig = {
-  maxStamina: 300,
-  duration: 6, // TESTING: 6 min instead of 420 (7 hours)
-  maxDistance: 42.195,
-  intervalDuration: 1, // TESTING: 1 min instead of 10
-  totalIntervals: 6, // TESTING: 6 instead of 42
-};
 
 export interface IntervalData {
   index: number;

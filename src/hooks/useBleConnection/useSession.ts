@@ -59,26 +59,37 @@ export function useSession() {
 
   /**
    * Update session state (stamina, distance, avatar)
+   *
+   * Optimized to avoid unnecessary re-renders by using functional update.
+   * This prevents the callback from changing on every session update.
    */
   const updateSessionState = useCallback(() => {
-    if (!session) return;
-
     const stamina = calculateStamina(intervalsRef.current);
     const elapsed = intervalTimer.getElapsedMinutes();
     const distance = calculateDistance(stamina, elapsed);
     const avatar = getAvatarState(stamina);
 
-    setSession({
-      ...session,
-      currentStamina: stamina,
-      totalDistance: distance,
-      intervals: [...intervalsRef.current],
+    setSession((prevSession) => {
+      if (!prevSession) return null;
+      return {
+        ...prevSession,
+        currentStamina: stamina,
+        totalDistance: distance,
+        intervals: [...intervalsRef.current],
+      };
     });
     setAvatarState(avatar);
-  }, [session, intervalTimer]);
+  }, [intervalTimer]);
 
   /**
    * Start new session
+   *
+   * PRD (Page 2): Session starts with full stamina (300)
+   * Intervals are created on-demand when:
+   * 1. User records hydration (recordDrink)
+   * 2. Interval auto-completes (onIntervalComplete)
+   *
+   * This prevents premature penalty calculation before user has a chance to drink.
    */
   const start = useCallback((gender: Gender) => {
     const startTime = Date.now();
@@ -94,9 +105,8 @@ export function useSession() {
       isComplete: false,
     };
 
-    // Create initial interval (index 0) with 0ml
-    const initialInterval = createInterval(0, startTime, gender, 0);
-    intervalsRef.current = [initialInterval];
+    // Don't create initial interval - let it be created on first drink or auto-completion
+    intervalsRef.current = [];
     currentIntervalRef.current = 0;
 
     setSession(newSession);
@@ -130,10 +140,10 @@ export function useSession() {
     // Add ml
     interval.actualMl += ml;
     interval.shortage = Math.max(0, interval.requiredMl - interval.actualMl);
-    
+
     // Recalculate penalty
     interval.penalty = interval.isFirst
-      ? calculateFirstPenalty(interval.actualMl)
+      ? calculateFirstPenalty(interval.actualMl, interval.requiredMl)
       : calculateRegularPenalty(interval.requiredMl, interval.actualMl);
 
     // Update session state
