@@ -166,23 +166,39 @@ export function useBLEConnection(
 
     try {
       const base64 = base64Encode(command);
-      
+
+      // Try with response first (more reliable)
       try {
         await device.writeCharacteristicWithResponseForService(
           targetService,
           txCharacteristic,
           base64
         );
+        console.log("📤 BLE TX (with response):", command.trim());
+        return true;
       } catch (e1) {
-        await device.writeCharacteristicWithoutResponseForService(
-          targetService,
-          txCharacteristic,
-          base64
-        );
+        // Only fallback to without-response if characteristic doesn't support response
+        // Check if error is about unsupported operation
+        const error = e1 as Error;
+        const isUnsupportedOperation =
+          error?.message?.includes('without response') ||
+          error?.message?.includes('not supported') ||
+          error?.message?.includes('GATT');
+
+        if (isUnsupportedOperation) {
+          console.log("⚠️ Response not supported, trying without response");
+          await device.writeCharacteristicWithoutResponseForService(
+            targetService,
+            txCharacteristic,
+            base64
+          );
+          console.log("📤 BLE TX (without response):", command.trim());
+          return true;
+        } else {
+          // For other errors (disconnect, timeout, etc) - throw to outer catch
+          throw e1;
+        }
       }
-      
-      console.log("📤 BLE TX:", command.trim());
-      return true;
     } catch (e) {
       console.error("Send failed:", e);
       captureBLEError("send_command", e as Error, device?.id);

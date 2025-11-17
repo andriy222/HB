@@ -20,6 +20,16 @@ import {
  * @param target - Required ml for first interval (from HYDRATION_TARGETS[gender].first10min)
  */
 export function calculateFirstPenalty(ml: number, target: number): number {
+  // Validate inputs
+  if (target <= 0) {
+    console.warn('calculateFirstPenalty: target must be > 0, got', target);
+    return STAMINA_PENALTY.first.ml0;
+  }
+  if (ml < 0) {
+    console.warn('calculateFirstPenalty: ml must be >= 0, got', ml);
+    return STAMINA_PENALTY.first.ml0;
+  }
+
   if (ml >= target) return STAMINA_PENALTY.first.ml500Plus; // 100%+
   if (ml >= target * 0.5) return STAMINA_PENALTY.first.ml250to499; // 50-99%
   if (ml >= target * 0.002) return STAMINA_PENALTY.first.ml1to249; // 0.2-49% (1/500 = 0.002)
@@ -48,6 +58,12 @@ export function calculateFirstPenalty(ml: number, target: number): number {
  * @param actual - Actual ml consumed
  */
 export function calculateRegularPenalty(required: number, actual: number): number {
+  // Validate inputs
+  if (required <= 0) {
+    console.warn('calculateRegularPenalty: required must be > 0, got', required);
+    return 0;
+  }
+
   const shortage = Math.max(0, required - actual);
   if (shortage === 0) return 0;
 
