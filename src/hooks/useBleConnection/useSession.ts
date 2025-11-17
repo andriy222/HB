@@ -29,8 +29,24 @@ export function useSession() {
   const intervalTimer = useIntervalTimer({
     onIntervalComplete: (index) => {
       console.log(`⏱️ Auto-completed interval ${index}`);
-      // Interval is already created when recordDrink is called
-      // Just update UI state
+
+      // Ensure interval exists (create with 0ml if user didn't drink)
+      if (!session) return;
+
+      let interval = intervalsRef.current[index];
+      if (!interval) {
+        // User didn't drink during this interval - create with 0ml
+        interval = createInterval(
+          index,
+          session.startTime + index * SESSION_CONFIG.intervalDuration * 60 * 1000,
+          session.gender,
+          0
+        );
+        intervalsRef.current[index] = interval;
+        console.log(`💧 Interval ${index} auto-created with 0ml (no hydration)`);
+      }
+
+      // Update UI state
       updateSessionState();
     },
     onSessionComplete: () => {
@@ -65,9 +81,10 @@ export function useSession() {
    * Start new session
    */
   const start = useCallback((gender: Gender) => {
+    const startTime = Date.now();
     const newSession: SessionState = {
-      id: `session-${Date.now()}`,
-      startTime: Date.now(),
+      id: `session-${startTime}`,
+      startTime,
       endTime: null,
       gender,
       currentStamina: SESSION_CONFIG.maxStamina,
@@ -77,9 +94,11 @@ export function useSession() {
       isComplete: false,
     };
 
-    intervalsRef.current = [];
+    // Create initial interval (index 0) with 0ml
+    const initialInterval = createInterval(0, startTime, gender, 0);
+    intervalsRef.current = [initialInterval];
     currentIntervalRef.current = 0;
-    
+
     setSession(newSession);
     setAvatarState("normal");
 
