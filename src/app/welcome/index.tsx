@@ -20,16 +20,12 @@ export default function Welcome() {
     console.log("▶️ Continue pressed, going to", nextRoute);
     router.push(nextRoute);
   };
-  const handleDevTools = () => {
-    router.push("/devtools");
-  };
 
   return (
     <AuthBackground isSecondary={true}>
       <View style={styles.container}>
         <PaperButton onPress={handleContinue}>Continue</PaperButton>
       </View>
-      <PaperButton onPress={handleDevTools}>Continue</PaperButton>
     </AuthBackground>
   );
 }

@@ -68,6 +68,11 @@ export function useSession() {
     const distance = calculateDistance(stamina, elapsed);
     const avatar = getAvatarState(stamina);
 
+    console.log(
+      `📊 Stamina update: ${stamina} (${intervalsRef.current.length} intervals, ` +
+      `penalties: [${intervalsRef.current.map(i => i.penalty).join(', ')}])`
+    );
+
     setSession((prevSession) => {
       if (!prevSession) return null;
       return {
@@ -123,7 +128,7 @@ export function useSession() {
     // Use timer's current interval (always up-to-date)
     const intervalIndex = intervalTimer.getCurrentInterval();
     currentIntervalRef.current = intervalIndex;
-    
+
     // Get or create interval
     let interval = intervalsRef.current[intervalIndex];
     if (!interval) {
@@ -134,7 +139,11 @@ export function useSession() {
         0
       );
       intervalsRef.current[intervalIndex] = interval;
+      console.log(`📝 Created interval ${intervalIndex} (required: ${interval.requiredMl}ml)`);
     }
+
+    const oldPenalty = interval.penalty;
+    const oldMl = interval.actualMl;
 
     // Add ml
     interval.actualMl += ml;
@@ -145,10 +154,14 @@ export function useSession() {
       ? calculateFirstPenalty(interval.actualMl, interval.requiredMl)
       : calculateRegularPenalty(interval.requiredMl, interval.actualMl);
 
+    console.log(
+      `💧 +${ml}ml → Interval ${intervalIndex} | ` +
+      `${oldMl}ml→${interval.actualMl}ml/${interval.requiredMl}ml | ` +
+      `penalty: ${oldPenalty}→${interval.penalty}`
+    );
+
     // Update session state
     updateSessionState();
-
-    console.log(`💧 +${ml}ml → Interval ${intervalIndex}`);
   }, [session, intervalTimer, updateSessionState]);
 
   /**
