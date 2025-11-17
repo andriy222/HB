@@ -7,8 +7,9 @@ import SpriteAnimator from "../../../components/SpriteAnimator/SpriteAnimator";
 import { AVATAR_SIZE, FEMALE, MALE } from "../../../utils/constants";
 import { Gender, getSelectedGender } from "../../../utils/storage";
 import { View, StyleSheet, Dimensions } from "react-native";
-import ConnectionAlerts from "../../../components/ ConnectionAlert/ConnectionAlerts";
+import ConnectionAlerts from "../../../components/ConnectionAlert/ConnectionAlerts";
 import PaperButton from "../../../UI/PaperButton/PaperButton";
+import PaperProgressBar from "../../../UI/PaperProgressBar/PaperProgressBar";
 
 const { width } = Dimensions.get("window");
 const Main = () => {
@@ -51,6 +52,7 @@ const Main = () => {
           />
         </View>
         <Podium isMain={true} />
+        <PaperProgressBar />
       </View>
     </AuthBackground>
   );

@@ -9,6 +9,7 @@ export const colors = {
   errorBG: "#FFD2D2",
   success: "#04B100",
   successDot:"#4CAF50",
+  progress: "#A3E98A",
   // Text colors
   text: {
     primary: "#000000",
@@ -29,6 +30,7 @@ export const colors = {
   border: {
     default: "#000000",
     light: "#E0E0E0",
+    progress: "#40A81B"
   },
   labelBG: "#ACDCEE",
 

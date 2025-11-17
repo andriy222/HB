@@ -14,10 +14,10 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    flexGrow: 1,
+    // flexGrow: 1,
     justifyContent: "center",
     paddingHorizontal: 24,
-    paddingVertical: 20,
+    // paddingVertical: 20,
   },
   titleContainer: {
     alignItems: "center",

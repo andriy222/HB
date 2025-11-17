@@ -77,22 +77,19 @@ if (Platform.OS === "web") {
       set: (key: string, value: string | number | boolean) => {
         const strValue = String(value);
         cache.set(key, strValue);
-        // Async write in background
-        AsyncStorage.setItem(key, strValue).catch((err) => {
+        AsyncStorage.setItem(key, strValue).catch((err: Error) => {
           console.error("Failed to write to AsyncStorage:", err);
         });
       },
       delete: (key: string) => {
         cache.delete(key);
-        // Async delete in background
-        AsyncStorage.removeItem(key).catch((err) => {
+        AsyncStorage.removeItem(key).catch((err: Error) => {
           console.error("Failed to delete from AsyncStorage:", err);
         });
       },
       clearAll: () => {
         cache.clear();
-        // Async clear in background
-        AsyncStorage.clear().catch((err) => {
+        AsyncStorage.clear().catch((err:Error) => {
           console.error("Failed to clear AsyncStorage:", err);
         });
       },
