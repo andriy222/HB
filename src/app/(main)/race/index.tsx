@@ -24,8 +24,8 @@ import {
   setLastRaceDistance,
   clearLastRaceDistance,
 } from "../../../storage/appStorage";
-import { ConnectionGuard } from "../../../components/ConnectionGuard";
-import { useConnectionMonitor } from "../../../hooks/useConnectionMonitor";
+
+import { useGlobalConnectionMonitor } from "../../../hooks/useConnectionMonitor";
 
 const trophy = require("../../../../assets/win.png");
 const { width } = Dimensions.get("window");
@@ -35,16 +35,15 @@ const Main = () => {
   const [bestRun, setBestRun] = useState<number>(0);
   const [lastRaceDistance, setLastRaceDistanceState] = useState<number>(0);
   const [wasActive, setWasActive] = useState(false);
-  const { canStartRace } = useConnectionMonitor();
 
   const session = useSession();
+  const monitor = useGlobalConnectionMonitor();
 
   const isFinished = !session.isActive && lastRaceDistance > 0;
 
   useEffect(() => {
     const distance = getLastRaceDistance();
     setLastRaceDistanceState(distance);
-    console.log(canStartRace);
   }, []);
 
   useEffect(() => {
@@ -161,7 +160,7 @@ const Main = () => {
                 best run: {bestRun.toFixed(2)} km
               </Text>
             )}
-            {!session.isActive && canStartRace && (
+            {!session.isActive && (
               <PaperButton
                 onPress={handleStart}
                 variant="big"
@@ -172,11 +171,30 @@ const Main = () => {
             )}
           </View>
 
-          {/* {session.isActive && typeof __DEV__ !== "undefined" && __DEV__ && (
+          {bestRun > 0 && (
+            <Text style={styles.bestRun}>
+              best run: {bestRun.toFixed(2)} km
+            </Text>
+          )}
+
+          {session.isActive && (
+            <Text style={styles.timeText}>
+              Time: {session.formatTime(session.elapsedMinutes)} /{" "}
+              {session.formatTime(SESSION_CONFIG.duration)}
+            </Text>
+          )}
+
+          {!session.isActive && monitor.state.internet.isConnected && (
+            <PaperButton onPress={handleStart} variant="big" style={styles.btn}>
+              Start new Race
+            </PaperButton>
+          )}
+
+          {session.isActive && typeof __DEV__ !== "undefined" && __DEV__ && (
             <PaperButton onPress={handleMockDrink} variant="big">
               +100ml (Test)
             </PaperButton>
-          )} */}
+          )}
         </View>
       </View>
     </AuthBackground>

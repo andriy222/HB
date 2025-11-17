@@ -142,32 +142,40 @@ class ConnectionStateStore {
   }
 
   updateBle(isConnected: boolean, isReconnecting: boolean) {
+    // Створюємо повністю новий стан з новими вкладеними об'єктами
     this.state = {
-      ...this.state,
       ble: { isConnected, isReconnecting },
+      internet: { ...this.state.internet },
+      coaster: { ...this.state.coaster },
     };
     this.notify();
   }
 
   updateInternet(isConnected: boolean) {
+    // Створюємо повністю новий стан з новими вкладеними об'єктами
     this.state = {
-      ...this.state,
+      ble: { ...this.state.ble },
       internet: { isConnected },
+      coaster: { ...this.state.coaster },
     };
     this.notify();
   }
 
   updateCoaster(isConnected: boolean) {
+    // Створюємо повністю новий стан з новими вкладеними об'єктами
     this.state = {
-      ...this.state,
+      ble: { ...this.state.ble },
+      internet: { ...this.state.internet },
       coaster: { isConnected },
     };
     this.notify();
   }
 
   private notify() {
+    // Створюємо НОВИЙ об'єкт щоб React побачив зміну
+    const newState = { ...this.state };
     this.listeners.forEach((listener) => {
-      listener(this.state);
+      listener(newState);
     });
   }
 }
