@@ -30,95 +30,6 @@ export interface ConnectionMonitorHook {
 }
 
 /**
- * Централізований хук для моніторингу всіх підключень
- */
-export function useConnectionMonitor(): ConnectionMonitorHook {
-  const [state, setState] = useState<ConnectionState>({
-    ble: {
-      isConnected: false,
-      isReconnecting: false,
-    },
-    internet: {
-      isConnected: false,
-    },
-    coaster: {
-      isConnected: false,
-    },
-  });
-
-  // Моніторинг інтернету
-  useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener((netState) => {
-      const isOnline = netState.isConnected ?? false;
-
-      setState((prev) => ({
-        ...prev,
-        internet: {
-          isConnected: isOnline,
-        },
-      }));
-    });
-
-    // Initial check
-    NetInfo.fetch().then((netState) => {
-      const isOnline = netState.isConnected ?? false;
-      setState((prev) => ({
-        ...prev,
-        internet: {
-          isConnected: isOnline,
-        },
-      }));
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, []);
-
-  // Методи для оновлення стану BLE/Coaster (викликаються з інших хуків)
-  const updateBleState = useCallback((isConnected: boolean, isReconnecting: boolean) => {
-    setState((prev) => ({
-      ...prev,
-      ble: {
-        isConnected,
-        isReconnecting,
-      },
-    }));
-  }, []);
-
-  const updateCoasterState = useCallback((isConnected: boolean) => {
-    setState((prev) => ({
-      ...prev,
-      coaster: {
-        isConnected,
-      },
-    }));
-  }, []);
-
-  // Перевірка чи всі підключення є
-  const hasAllConnections =
-    state.ble.isConnected &&
-    state.internet.isConnected &&
-    state.coaster.isConnected;
-
-  // Список відсутніх підключень
-  const missingConnections: string[] = [];
-  if (!state.internet.isConnected) missingConnections.push('internet');
-  if (!state.ble.isConnected) missingConnections.push('bluetooth');
-  if (!state.coaster.isConnected) missingConnections.push('coaster');
-
-  // Чи можна починати гонку
-  const canStartRace = hasAllConnections;
-
-  return {
-    state,
-    hasAllConnections,
-    missingConnections,
-    canStartRace,
-  };
-}
-
-/**
  * Глобальний стор для стану підключень
  * Використовується для синхронізації між різними хуками
  */
@@ -186,7 +97,7 @@ export const connectionStore = new ConnectionStateStore();
  * Хук що використовує глобальний стор
  * Це забезпечує синхронізацію стану між всіма компонентами
  */
-export function useGlobalConnectionMonitor(): ConnectionMonitorHook {
+export function useConnectionMonitor(): ConnectionMonitorHook {
   const [state, setState] = useState<ConnectionState>(
     connectionStore.getState()
   );
@@ -199,12 +110,6 @@ export function useGlobalConnectionMonitor(): ConnectionMonitorHook {
 
     // Моніторинг інтернету
     const unsubscribeNet = NetInfo.addEventListener((netState) => {
-      const isOnline = netState.isConnected ?? false;
-      connectionStore.updateInternet(isOnline);
-    });
-
-    // Initial internet check
-    NetInfo.fetch().then((netState) => {
       const isOnline = netState.isConnected ?? false;
       connectionStore.updateInternet(isOnline);
     });
@@ -237,3 +142,9 @@ export function useGlobalConnectionMonitor(): ConnectionMonitorHook {
     canStartRace,
   };
 }
+
+/**
+ * Alias for backwards compatibility
+ * @deprecated Use useConnectionMonitor instead
+ */
+export const useGlobalConnectionMonitor = useConnectionMonitor;
