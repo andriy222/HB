@@ -62,7 +62,9 @@ export function useSession() {
    * Optimized to avoid unnecessary re-renders by using functional update.
    * This prevents the callback from changing on every session update.
    */
-  const updateSessionState = useCallback(() => {
+  const updateSessionStateRef = useRef<() => void>();
+
+  updateSessionStateRef.current = () => {
     const stamina = calculateStamina(intervalsRef.current);
     const elapsed = intervalTimer.getElapsedMinutes();
     const distance = calculateDistance(stamina, elapsed);
@@ -83,7 +85,11 @@ export function useSession() {
       };
     });
     setAvatarState(avatar);
-  }, [intervalTimer]);
+  };
+
+  const updateSessionState = useCallback(() => {
+    updateSessionStateRef.current?.();
+  }, []);
 
   /**
    * Start new session
@@ -211,11 +217,11 @@ export function useSession() {
     if (!session?.isActive) return;
 
     const timer = setInterval(() => {
-      updateSessionState();
+      updateSessionStateRef.current?.();
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [session?.isActive, updateSessionState]);
+  }, [session?.isActive]);
 
   /**
    * Auto-save session on changes
