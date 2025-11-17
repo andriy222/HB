@@ -24,6 +24,8 @@ import {
   setLastRaceDistance,
   clearLastRaceDistance,
 } from "../../../storage/appStorage";
+import { ConnectionGuard } from "../../../components/ConnectionGuard";
+import { useConnectionMonitor } from "../../../hooks/useConnectionMonitor";
 
 const trophy = require("../../../../assets/win.png");
 const { width } = Dimensions.get("window");
@@ -33,18 +35,18 @@ const Main = () => {
   const [bestRun, setBestRun] = useState<number>(0);
   const [lastRaceDistance, setLastRaceDistanceState] = useState<number>(0);
   const [wasActive, setWasActive] = useState(false);
+  const { canStartRace } = useConnectionMonitor();
 
   const session = useSession();
 
   const isFinished = !session.isActive && lastRaceDistance > 0;
 
-  // Завантажити last race distance при mount
   useEffect(() => {
     const distance = getLastRaceDistance();
     setLastRaceDistanceState(distance);
+    console.log(canStartRace);
   }, []);
 
-  // Зберегти distance при завершенні
   useEffect(() => {
     if (wasActive && !session.isActive && session.distance > 0) {
       setLastRaceDistance(session.distance);
@@ -153,31 +155,28 @@ const Main = () => {
               </Text>
             </View>
           )}
+          <View>
+            {bestRun > 0 && (
+              <Text style={styles.bestRun}>
+                best run: {bestRun.toFixed(2)} km
+              </Text>
+            )}
+            {!session.isActive && canStartRace && (
+              <PaperButton
+                onPress={handleStart}
+                variant="big"
+                style={styles.btn}
+              >
+                Start new Race
+              </PaperButton>
+            )}
+          </View>
 
-          {bestRun > 0 && (
-            <Text style={styles.bestRun}>
-              best run: {bestRun.toFixed(2)} km
-            </Text>
-          )}
-
-          {session.isActive && (
-            <Text style={styles.timeText}>
-              Time: {session.formatTime(session.elapsedMinutes)} /{" "}
-              {session.formatTime(SESSION_CONFIG.duration)}
-            </Text>
-          )}
-
-          {!session.isActive && (
-            <PaperButton onPress={handleStart} variant="big" style={styles.btn}>
-              Start new Race
-            </PaperButton>
-          )}
-
-          {session.isActive && typeof __DEV__ !== "undefined" && __DEV__ && (
+          {/* {session.isActive && typeof __DEV__ !== "undefined" && __DEV__ && (
             <PaperButton onPress={handleMockDrink} variant="big">
               +100ml (Test)
             </PaperButton>
-          )}
+          )} */}
         </View>
       </View>
     </AuthBackground>

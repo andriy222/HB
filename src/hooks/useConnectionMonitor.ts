@@ -207,19 +207,16 @@ export function useGlobalConnectionMonitor(): ConnectionMonitorHook {
     };
   }, []);
 
-  // Перевірка чи всі підключення є
   const hasAllConnections =
     state.ble.isConnected &&
     state.internet.isConnected &&
     state.coaster.isConnected;
 
-  // Список відсутніх підключень
   const missingConnections: string[] = [];
   if (!state.internet.isConnected) missingConnections.push('internet');
   if (!state.ble.isConnected) missingConnections.push('bluetooth');
   if (!state.coaster.isConnected) missingConnections.push('coaster');
 
-  // Чи можна починати гонку
   const canStartRace = hasAllConnections;
 
   return {
