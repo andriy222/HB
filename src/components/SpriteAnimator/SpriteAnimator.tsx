@@ -29,10 +29,17 @@ export default function SpriteAnimator({
   const [currentFrameIndex, setCurrentFrameIndex] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Reset frame index when spriteData changes
+  useEffect(() => {
+    setCurrentFrameIndex(0);
+  }, [spriteData]);
+
   useEffect(() => {
     if (!spriteData?.frames || spriteData.frames.length === 0) return;
 
     const frame = spriteData.frames[currentFrameIndex];
+    if (!frame) return; // Safety check
+
     const duration = frame.duration || 100;
 
     timerRef.current = setTimeout(() => {
@@ -48,7 +55,16 @@ export default function SpriteAnimator({
     };
   }, [currentFrameIndex, spriteData, loop]);
 
+  // Safety checks
+  if (!spriteData?.frames || spriteData.frames.length === 0) {
+    return null;
+  }
+
   const currentFrame = spriteData.frames[currentFrameIndex];
+  if (!currentFrame) {
+    return null;
+  }
+
   const frameW = currentFrame.frame.w;
   const frameH = currentFrame.frame.h;
   const scale = size / frameW;
