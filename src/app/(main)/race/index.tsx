@@ -47,14 +47,19 @@ const Main = () => {
   }, []);
 
   useEffect(() => {
-    if (wasActive && !session.isActive && session.distance > 0) {
+    if (session.isActive && session.distance > 0) {
       setLastRaceDistance(session.distance);
       setLastRaceDistanceState(session.distance);
-      console.log("🏁 Race finished! Saved:", session.distance);
+    }
+  }, [session.isActive, session.distance]);
+
+  // Окремо логуємо фініш:
+  useEffect(() => {
+    if (wasActive && !session.isActive) {
+      console.log("🏁 Race finished! Distance:", lastRaceDistance);
     }
     setWasActive(session.isActive);
-  }, [session.isActive, session.distance, wasActive]);
-
+  }, [session.isActive, wasActive, lastRaceDistance]);
   useEffect(() => {
     const best = getBestRun();
     if (best) {
@@ -154,12 +159,7 @@ const Main = () => {
               </Text>
             </View>
           )}
-          <View>
-            {bestRun > 0 && (
-              <Text style={styles.bestRun}>
-                best run: {bestRun.toFixed(2)} km
-              </Text>
-            )}
+          <View style={styles.stat}>
             {!session.isActive && (
               <PaperButton
                 onPress={handleStart}
@@ -169,32 +169,17 @@ const Main = () => {
                 Start new Race
               </PaperButton>
             )}
+            {bestRun > 0 && monitor.canStartRace && (
+              <Text style={styles.bestRun}>
+                best run: {bestRun.toFixed(2)} km
+              </Text>
+            )}
           </View>
-
-          {bestRun > 0 && (
-            <Text style={styles.bestRun}>
-              best run: {bestRun.toFixed(2)} km
-            </Text>
-          )}
-
-          {session.isActive && (
-            <Text style={styles.timeText}>
-              Time: {session.formatTime(session.elapsedMinutes)} /{" "}
-              {session.formatTime(SESSION_CONFIG.duration)}
-            </Text>
-          )}
-
-          {!session.isActive && monitor.state.internet.isConnected && (
-            <PaperButton onPress={handleStart} variant="big" style={styles.btn}>
-              Start new Race
-            </PaperButton>
-          )}
-
-          {session.isActive && typeof __DEV__ !== "undefined" && __DEV__ && (
+          {/* {session.isActive && typeof __DEV__ !== "undefined" && __DEV__ && (
             <PaperButton onPress={handleMockDrink} variant="big">
               +100ml (Test)
             </PaperButton>
-          )}
+          )} */}
         </View>
       </View>
     </AuthBackground>
@@ -261,6 +246,11 @@ const styles = StyleSheet.create({
   finishDistanceKM: {
     fontSize: 32,
     color: "#00000099",
+  },
+  stat: {
+    flexDirection: "column",
+    alignItems: "center",
+    gap: width * 0.02,
   },
 });
 

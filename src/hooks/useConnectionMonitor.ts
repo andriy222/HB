@@ -1,9 +1,3 @@
-/**
- * Centralized Connection Monitor
- *
- * Простий централізований реактивний моніторинг всіх підключень
- * БЕЗ якості - просто чи є підключення чи ні
- */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import NetInfo from '@react-native-community/netinfo';
@@ -26,12 +20,9 @@ export interface ConnectionMonitorHook {
   state: ConnectionState;
   hasAllConnections: boolean;
   missingConnections: string[];
-  canStartRace: boolean; // чи можна починати гонку
+  canStartRace: boolean; 
 }
 
-/**
- * Централізований хук для моніторингу всіх підключень
- */
 export function useConnectionMonitor(): ConnectionMonitorHook {
   const [state, setState] = useState<ConnectionState>({
     ble: {
@@ -75,7 +66,6 @@ export function useConnectionMonitor(): ConnectionMonitorHook {
     };
   }, []);
 
-  // Методи для оновлення стану BLE/Coaster (викликаються з інших хуків)
   const updateBleState = useCallback((isConnected: boolean, isReconnecting: boolean) => {
     setState((prev) => ({
       ...prev,
@@ -95,19 +85,16 @@ export function useConnectionMonitor(): ConnectionMonitorHook {
     }));
   }, []);
 
-  // Перевірка чи всі підключення є
   const hasAllConnections =
     state.ble.isConnected &&
     state.internet.isConnected &&
     state.coaster.isConnected;
 
-  // Список відсутніх підключень
   const missingConnections: string[] = [];
   if (!state.internet.isConnected) missingConnections.push('internet');
   if (!state.ble.isConnected) missingConnections.push('bluetooth');
   if (!state.coaster.isConnected) missingConnections.push('coaster');
 
-  // Чи можна починати гонку
   const canStartRace = hasAllConnections;
 
   return {
@@ -142,7 +129,7 @@ class ConnectionStateStore {
   }
 
   updateBle(isConnected: boolean, isReconnecting: boolean) {
-    // Створюємо повністю новий стан з новими вкладеними об'єктами
+
     this.state = {
       ble: { isConnected, isReconnecting },
       internet: { ...this.state.internet },
@@ -152,7 +139,7 @@ class ConnectionStateStore {
   }
 
   updateInternet(isConnected: boolean) {
-    // Створюємо повністю новий стан з новими вкладеними об'єктами
+
     this.state = {
       ble: { ...this.state.ble },
       internet: { isConnected },
@@ -162,7 +149,6 @@ class ConnectionStateStore {
   }
 
   updateCoaster(isConnected: boolean) {
-    // Створюємо повністю новий стан з новими вкладеними об'єктами
     this.state = {
       ble: { ...this.state.ble },
       internet: { ...this.state.internet },
@@ -172,7 +158,6 @@ class ConnectionStateStore {
   }
 
   private notify() {
-    // Створюємо НОВИЙ об'єкт щоб React побачив зміну
     const newState = { ...this.state };
     this.listeners.forEach((listener) => {
       listener(newState);
@@ -197,13 +182,11 @@ export function useGlobalConnectionMonitor(): ConnectionMonitorHook {
       setState(newState);
     });
 
-    // Моніторинг інтернету
     const unsubscribeNet = NetInfo.addEventListener((netState) => {
       const isOnline = netState.isConnected ?? false;
       connectionStore.updateInternet(isOnline);
     });
 
-    // Initial internet check
     NetInfo.fetch().then((netState) => {
       const isOnline = netState.isConnected ?? false;
       connectionStore.updateInternet(isOnline);
