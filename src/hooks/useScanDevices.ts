@@ -6,6 +6,7 @@ import {
   getLastDeviceId,
   setLastDeviceId,
 } from "../utils/storage";
+import { BLE_DEVICE, BLE_TIMEOUTS } from "../constants/bleConstants";
 
 export const useBleScan = () => {
   const [devices, setDevices] = useState<Device[]>([]);
@@ -29,8 +30,8 @@ export const useBleScan = () => {
   const reconnectTimerRef = useRef<any>(null);
   const reconnectActiveRef = useRef(false);
 
-  const TARGET_NAME = "Hybit NeuraFlow";
-  const TARGET_SERVICE = "6e400001-b5a3-f393-e0a9-e50e24dcca9e"; 
+  const TARGET_NAME = BLE_DEVICE.TARGET_NAME;
+  const TARGET_SERVICE = BLE_DEVICE.SERVICE_UUID; 
 
   useEffect(() => {
     managerRef.current = new BleManager();
@@ -79,7 +80,7 @@ export const useBleScan = () => {
       managerRef.current?.stopDeviceScan();
       setIsScanning(false);
       setNoTargetFound(!foundTargetRef.current);
-    }, 10000);
+    }, BLE_TIMEOUTS.SCAN_DURATION);
   }, []);
 
   const stopScan = useCallback(() => {
@@ -115,6 +116,42 @@ export const useBleScan = () => {
     }
   }, [connectedDevice]);
 
+  /**
+   * Schedule reconnect attempt with exponential backoff
+   */
+  const scheduleReconnect = useCallback((deviceId: string, attemptNumber: number) => {
+    if (!reconnectActiveRef.current) return;
+    if (attemptNumber >= BLE_TIMEOUTS.MAX_RECONNECT_ATTEMPTS) {
+      console.log(`⚠️ Max reconnect attempts (${BLE_TIMEOUTS.MAX_RECONNECT_ATTEMPTS}) reached`);
+      setIsReconnecting(false);
+      return;
+    }
+
+    const delay = Math.min(
+      BLE_TIMEOUTS.RECONNECT_MAX_DELAY,
+      BLE_TIMEOUTS.RECONNECT_INITIAL_DELAY * Math.pow(2, attemptNumber)
+    );
+
+    console.log(`🔄 Scheduling reconnect attempt ${attemptNumber + 1} in ${delay}ms`);
+
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+    }
+
+    reconnectTimerRef.current = setTimeout(async () => {
+      if (!reconnectActiveRef.current) return;
+
+      console.log(`🔄 Reconnect attempt ${attemptNumber + 1}/${BLE_TIMEOUTS.MAX_RECONNECT_ATTEMPTS}`);
+      const device = await connectToDevice(deviceId);
+
+      if (!device && reconnectActiveRef.current) {
+        // Retry with next attempt number
+        autoReconnectAttemptsRef.current = attemptNumber + 1;
+        scheduleReconnect(deviceId, attemptNumber + 1);
+      }
+    }, delay);
+  }, []);
+
   const connectToDevice = useCallback(
     async (deviceId: string) => {
       if (!managerRef.current) return null;
@@ -134,7 +171,7 @@ export const useBleScan = () => {
           deviceId,
           Platform.OS === "android" ? { autoConnect: true } : undefined
         );
-        const timeoutMs = 10000;
+        const timeoutMs = BLE_TIMEOUTS.CONNECTION_TIMEOUT;
         const withTimeout = Promise.race([
           connectPromise.then((d) => {
             finished = true;
@@ -193,41 +230,19 @@ export const useBleScan = () => {
 
             // Auto-reconnect on unexpected drops (e.g., <420 logs/no SYNC)
             if (!userInitiatedDisconnectRef.current) {
-              const tries = autoReconnectAttemptsRef.current;
-              if (tries < 3) {
-                autoReconnectAttemptsRef.current = tries + 1;
-                setIsReconnecting(true);
-                reconnectActiveRef.current = true;
-                const delay = Math.min(30000, 1000 * Math.pow(2, tries));
-                if (reconnectTimerRef.current) {
-                  try { clearTimeout(reconnectTimerRef.current); } catch {}
-                }
-                reconnectTimerRef.current = setTimeout(() => {
-                  if (!reconnectActiveRef.current) return;
-                  connectToDevice(deviceId).then((d) => {
-                    if (!d && reconnectActiveRef.current) {
-                      // schedule another try
-                      const next = autoReconnectAttemptsRef.current;
-                      const nextDelay = Math.min(30000, 1000 * Math.pow(2, next));
-                      if (reconnectTimerRef.current) {
-                        try { clearTimeout(reconnectTimerRef.current); } catch {}
-                      }
-                      reconnectTimerRef.current = setTimeout(() => {
-                        if (reconnectActiveRef.current) connectToDevice(deviceId);
-                      }, nextDelay);
-                    }
-                  });
-                }, delay);
-              } else {
-                // give up after a few attempts; keep last device id for later
-                setIsReconnecting(false);
-              }
+              console.log("🔌 Unexpected disconnect, starting reconnect sequence");
+              autoReconnectAttemptsRef.current = 0;
+              setIsReconnecting(true);
+              reconnectActiveRef.current = true;
+              scheduleReconnect(deviceId, 0);
             } else {
+              // User-initiated disconnect - reset all reconnect state
+              console.log("🔌 User-initiated disconnect");
               autoReconnectAttemptsRef.current = 0;
               setIsReconnecting(false);
               reconnectActiveRef.current = false;
               if (reconnectTimerRef.current) {
-                try { clearTimeout(reconnectTimerRef.current); } catch {}
+                clearTimeout(reconnectTimerRef.current);
                 reconnectTimerRef.current = null;
               }
             }
@@ -244,7 +259,7 @@ export const useBleScan = () => {
         setConnectingDeviceId(null);
       }
     },
-    [stopScan]
+    [stopScan, scheduleReconnect]
   );
 
   // Auto-reconnect to last device if available

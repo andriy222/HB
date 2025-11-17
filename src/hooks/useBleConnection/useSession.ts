@@ -5,6 +5,8 @@ import {
   calculateStamina,
   calculateDistance,
   getAvatarState,
+  calculateFirstPenalty,
+  calculateRegularPenalty,
 } from "./staminaEngine";
 import { useIntervalTimer } from "./useIntervalTimer";
 import { clearSession, loadSession, saveSession } from "../../utils/sessionPerssistance";
@@ -109,7 +111,6 @@ export function useSession() {
     interval.shortage = Math.max(0, interval.requiredMl - interval.actualMl);
     
     // Recalculate penalty
-    const { calculateFirstPenalty, calculateRegularPenalty } = require("./staminaEngine");
     interval.penalty = interval.isFirst
       ? calculateFirstPenalty(interval.actualMl)
       : calculateRegularPenalty(interval.requiredMl, interval.actualMl);

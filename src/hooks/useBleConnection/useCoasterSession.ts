@@ -5,6 +5,7 @@ import { useProtocolHandler } from "./useProtocolHandler";
 import { useReconnectHandler } from "./useRecconectHandler";
 import { useBLEWrapper } from "../MockBleProvider/useBleWrapper";
 import { getSelectedGender } from "../../utils/storage";
+import { BLE_DEVICE, BLE_PROTOCOL, BLE_TIMEOUTS } from "../../constants/bleConstants";
 
 
 /**
@@ -18,7 +19,7 @@ interface CoasterSessionConfig {
 }
 
 export function useCoasterSession(config: CoasterSessionConfig) {
-  const { device, isConnected, dlPerInterval = 10 } = config;
+  const { device, isConnected, dlPerInterval = BLE_PROTOCOL.LOGS_PER_INTERVAL } = config;
   
   const session = useSession();
   const sessionStartedRef = useRef(false);
@@ -45,13 +46,13 @@ export function useCoasterSession(config: CoasterSessionConfig) {
     },
     onDataComplete: (count) => {
       console.log(`📊 Data complete: ${count} logs`);
-      
-      // Auto-sync if we got 0 logs or >= 411 logs
-      if ((count === 0 || count >= 411) && !autoSyncRef.current) {
+
+      // Auto-sync if we got 0 logs or >= max expected logs
+      if ((count === 0 || count >= BLE_PROTOCOL.MAX_EXPECTED_LOGS) && !autoSyncRef.current) {
         autoSyncRef.current = true;
         setTimeout(() => {
           sendGoalAndSync();
-        }, 250);
+        }, BLE_TIMEOUTS.AUTO_SYNC_DELAY);
       }
     },
     onGoalAck: () => {
@@ -72,9 +73,9 @@ export function useCoasterSession(config: CoasterSessionConfig) {
     {
       device,
       isConnected,
-      targetService: "6e400001-b5a3-f393-e0a9-e50e24dcca9e",
-      rxCharacteristic: "6e400003-b5a3-f393-e0a9-e50e24dcca9e",
-      txCharacteristic: "6e400002-b5a3-f393-e0a9-e50e24dcca9e",
+      targetService: BLE_DEVICE.SERVICE_UUID,
+      rxCharacteristic: BLE_DEVICE.RX_CHARACTERISTIC,
+      txCharacteristic: BLE_DEVICE.TX_CHARACTERISTIC,
     },
     handleBLEData,
     handleProtocolLine
@@ -181,8 +182,8 @@ export function useCoasterSession(config: CoasterSessionConfig) {
    * Send GOAL then SYNC (auto flow)
    */
   const sendGoalAndSync = useCallback(async () => {
-    // Send goal (37ml every 5min by default)
-    await sendGoal(37, 5);
+    // Send goal (default values from BLE protocol)
+    await sendGoal(BLE_PROTOCOL.COASTER_GOAL_ML, BLE_PROTOCOL.COASTER_GOAL_INTERVAL_MIN);
     // SYNC will be sent after GOAL ACK (handled in protocol callbacks)
   }, [sendGoal]);
 

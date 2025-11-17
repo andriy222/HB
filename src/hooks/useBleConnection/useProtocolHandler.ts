@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from "react";
+import { BLE_TIMEOUTS } from "../../constants/bleConstants";
 
 /**
  * Protocol Response Handler
@@ -58,7 +59,7 @@ export function useProtocolHandler(callbacks?: ProtocolHandlerCallbacks) {
           console.log("⏱️ DL stream idle → auto-completing");
           handleProtocolLine("END");
         }
-      }, 1500);
+      }, BLE_TIMEOUTS.PROTOCOL_IDLE_TIMEOUT);
       
       return true;
     }

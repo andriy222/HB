@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback } from "react";
+import { BLE_TIMEOUTS } from "../../constants/bleConstants";
 
 /**
  * Reconnect Handler with Backfill
@@ -65,11 +66,11 @@ export function useReconnectHandler(
       // Check if we need backfill
       if (sessionStartTime && missedMinutes > 1) {
         console.log("🔄 Requesting backfill...");
-        
+
         // Give BLE a moment to stabilize
         setTimeout(() => {
           onReconnect();
-        }, 500);
+        }, BLE_TIMEOUTS.BACKFILL_STABILIZATION_DELAY);
       }
     } else {
       console.log("🔌 Initial connection");
