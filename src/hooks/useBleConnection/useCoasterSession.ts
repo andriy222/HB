@@ -82,13 +82,6 @@ export function useCoasterSession(config: CoasterSessionConfig) {
   );
 
   /**
-   * Handle protocol lines (ACK/END/ERR/SDT)
-   */
-  function handleProtocolLine(line: string) {
-    protocol.handleProtocolLine(line);
-  }
-
-  /**
    * Map DL → Interval
    */
   const mapDLToInterval = useCallback((dlIndex: number): number => {
@@ -98,7 +91,7 @@ export function useCoasterSession(config: CoasterSessionConfig) {
   /**
    * Handle BLE data
    */
-  function handleBLEData(data: { index: number; ml: number }) {
+  const handleBLEData = useCallback((data: { index: number; ml: number }) => {
     if (!session.isActive) return;
 
     const intervalIndex = mapDLToInterval(data.index);
@@ -117,7 +110,14 @@ export function useCoasterSession(config: CoasterSessionConfig) {
     console.log(
       `💧 DL ${data.index} → Interval ${intervalIndex}: +${data.ml.toFixed(1)}ml`
     );
-  }
+  }, [session.isActive, session.recordDrink, mapDLToInterval]);
+
+  /**
+   * Handle protocol lines (ACK/END/ERR/SDT)
+   */
+  const handleProtocolLine = useCallback((line: string) => {
+    protocol.handleProtocolLine(line);
+  }, [protocol.handleProtocolLine]);
 
   /**
    * Auto-start session

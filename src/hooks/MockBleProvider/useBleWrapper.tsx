@@ -31,8 +31,6 @@ export function useBLEWrapper(
   const mockModeEnabled =
     forceMock || BLE_CONFIG.USE_MOCK_BLE || !device;
 
-  console.log(`🔧 BLE Connection Mode: ${mockModeEnabled ? "MOCK" : "REAL"}`);
-
   // Real BLE
   const realBLE = useBLEConnection(
     device,
