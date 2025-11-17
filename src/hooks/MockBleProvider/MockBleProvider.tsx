@@ -6,6 +6,15 @@ import {
   setLastDeviceId,
 } from "../../utils/storage";
 
+// Import mockCoaster for data generation
+let mockCoaster: any = null;
+try {
+  const module = require("./MockCoaster");
+  mockCoaster = module.mockCoaster;
+} catch (e) {
+  console.warn("⚠️ mockCoaster not found, using basic mock");
+}
+
 const MOCK_DEVICE: Device = {
   id: "mock-device-id",
   name: "Hybit NeuraFlow (Mock)",
@@ -24,14 +33,21 @@ export const useMockBleScan = () => {
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [noTargetFound, setNoTargetFound] = useState(false);
 
+  // Restore connection on mount
   useEffect(() => {
     const savedDeviceId = getLastDeviceId();
-    console.log("📱 [MOCK] Saved device ID:", savedDeviceId);
+    console.log("📱 [MOCK] Checking saved device:", savedDeviceId);
 
     if (savedDeviceId === MOCK_DEVICE.id) {
+      console.log("📱 [MOCK] Restoring connection");
       setConnectedDevice(MOCK_DEVICE);
       setLinkUp(true);
-      console.log("📱 [MOCK] Restored connection to:", MOCK_DEVICE.name);
+
+      // Generate initial logs if mockCoaster available
+      if (mockCoaster && !mockCoaster.getState().connected) {
+        mockCoaster.generateLogs(100);
+        console.log("📊 [MOCK] Generated 100 initial logs");
+      }
     }
   }, []);
 
@@ -59,13 +75,20 @@ export const useMockBleScan = () => {
     return new Promise<Device | null>((resolve) => {
       setTimeout(() => {
         console.log("📱 [MOCK] Connected!");
+
+        // Setup mockCoaster with data
+        if (mockCoaster) {
+          mockCoaster.generateLogs(100);
+          console.log("📊 [MOCK] Generated 100 logs");
+        }
+
         setConnectedDevice(MOCK_DEVICE);
         setLinkUp(true);
         setIsConnecting(false);
         setConnectingDeviceId(null);
 
         setLastDeviceId(MOCK_DEVICE.id);
-        console.log("💾 [MOCK] Saved device ID to storage");
+        console.log("💾 [MOCK] Saved device ID");
 
         resolve(MOCK_DEVICE);
       }, 1500);
@@ -74,11 +97,16 @@ export const useMockBleScan = () => {
 
   const disconnect = async () => {
     console.log("📱 [MOCK] Disconnecting");
+
+    if (mockCoaster) {
+      mockCoaster.disconnect();
+    }
+
     setConnectedDevice(null);
     setLinkUp(false);
 
     clearLastDeviceId();
-    console.log("💾 [MOCK] Cleared device ID from storage");
+    console.log("💾 [MOCK] Cleared device ID");
   };
 
   return {
