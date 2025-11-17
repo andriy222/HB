@@ -2,7 +2,7 @@ import BottomNavigation from "../../../components/BottomNavigation/BottomNavigat
 import AuthBackground from "../../../UI/layout/backgrounds/AuthBackground";
 import { Dimensions, StyleSheet, Text, View, Image } from "react-native";
 import { colors, textPresets } from "../../../theme";
-import { useConnectionStatus } from "../../../hooks/useConnectionStatus/useConectionStatus";
+import { useConnectionStatus } from "../../../hooks/useConnectionStatus/useConnectionStatus";
 import { useEffect } from "react";
 
 const { width, height } = Dimensions.get("window");

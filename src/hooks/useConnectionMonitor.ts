@@ -4,7 +4,7 @@
  * Простий централізований реактивний моніторинг всіх підключень
  * БЕЗ якості - просто чи є підключення чи ні
  *
- * Now uses Zustand for state management
+ * Uses Zustand for state management
  */
 
 import { useEffect } from 'react';
