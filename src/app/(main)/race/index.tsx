@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import AuthBackground from "../../../UI/layout/backgrounds/AuthBackground";
 import { clearStorage, debugStorage, storage } from "../../../store/bleStore";
 import Podium from "../../../components/Podium/Podium";
@@ -11,7 +11,7 @@ import {
   AvatarAnimation,
 } from "../../../utils/constants";
 import { Gender, getSelectedGender } from "../../../utils/storage";
-import { View, StyleSheet, Dimensions, Text } from "react-native";
+import { View, StyleSheet, Dimensions, Text, Image } from "react-native";
 import ConnectionAlerts from "../../../components/ConnectionAlert/ConnectionAlerts";
 import PaperButton from "../../../UI/PaperButton/PaperButton";
 import PaperProgressBar from "../../../UI/PaperProgressBar/PaperProgressBar";
@@ -20,6 +20,7 @@ import { textPresets } from "../../../theme";
 import { useSession } from "../../../hooks/useBleConnection/useSession";
 import { getBestRun } from "../../../storage/appStorage";
 
+const trophy = require("../../../../assets/win.png");
 const { width } = Dimensions.get("window");
 
 const Main = () => {
@@ -27,9 +28,29 @@ const Main = () => {
   const [bestRun, setBestRun] = useState<number>(0);
 
   const session = useSession();
+
+  const finishedDistanceRef = useRef<number>(0);
+  const wasActiveRef = useRef(false);
+
+  const isFinished = !session.isActive && finishedDistanceRef.current > 0;
+
+  useEffect(() => {
+    if (session.isActive && session.distance > 0) {
+      finishedDistanceRef.current = session.distance;
+    }
+  }, [session.isActive, session.distance]);
+
+  useEffect(() => {
+    if (wasActiveRef.current && !session.isActive) {
+      console.log("🏁 Finish! Distance:", finishedDistanceRef.current);
+    }
+    wasActiveRef.current = session.isActive;
+  }, [session.isActive]);
+
   function clear() {
     clearStorage();
   }
+
   useEffect(() => {
     const best = getBestRun();
     if (best) {
@@ -77,6 +98,7 @@ const Main = () => {
       return;
     }
     console.log("🏁 Starting new race...");
+    finishedDistanceRef.current = 0;
     session.start(selectedGender);
   }
 
@@ -107,27 +129,41 @@ const Main = () => {
         </View>
         <Podium isMain={true} />
         <View style={styles.dataContainer}>
-          <PaperProgressBar progress={staminaRatio} />
-          <Text style={styles.progressText}>
-            {session.formatDistance(session.distance)}
-            <Text style={styles.progressTextKM}>km</Text> /
-            {SESSION_CONFIG.maxDistance}
-            <Text style={styles.progressTextKM}>km</Text>
-          </Text>
-          {/* <Text style={styles.staminaText}>
-            Stamina: {session.formatStamina(session.stamina)}
-          </Text> */}
+          {session.isActive && (
+            <View style={styles.progress}>
+              <PaperProgressBar progress={staminaRatio} />
+              <Text style={styles.progressText}>
+                {session.formatDistance(session.distance)}
+                <Text style={styles.progressTextKM}>km</Text> /{" "}
+                {SESSION_CONFIG.maxDistance}
+                <Text style={styles.progressTextKM}>km</Text>
+              </Text>
+            </View>
+          )}
+
+          {isFinished && (
+            <View style={styles.finish}>
+              <Image source={trophy} style={styles.trophy} />
+              <Text style={styles.finishDistance}>
+                {session.formatDistance(finishedDistanceRef.current)}
+                <Text style={styles.finishDistanceKM}> km</Text>
+              </Text>
+            </View>
+          )}
+
           {bestRun > 0 && (
             <Text style={styles.bestRun}>
               best run: {bestRun.toFixed(2)} km
             </Text>
           )}
+
           {session.isActive && (
             <Text style={styles.timeText}>
               Time: {session.formatTime(session.elapsedMinutes)} /{" "}
               {session.formatTime(SESSION_CONFIG.duration)}
             </Text>
           )}
+
           {!session.isActive && (
             <PaperButton
               onPress={handleStart}
@@ -138,14 +174,12 @@ const Main = () => {
               Start new Race
             </PaperButton>
           )}
-          {/* Mock button for testing */}
 
           {session.isActive && typeof __DEV__ !== "undefined" && __DEV__ && (
             <PaperButton onPress={handleMockDrink} variant="big">
               +100ml (Test)
             </PaperButton>
           )}
-          {/* <PaperButton onPress={clear}>clearStorage</PaperButton> */}
         </View>
       </View>
     </AuthBackground>
@@ -156,6 +190,11 @@ const styles = StyleSheet.create({
   runningContainer: {
     position: "relative",
     bottom: 80,
+  },
+  progress: {
+    flexDirection: "column",
+    alignItems: "center",
+    gap: width * 0.05,
   },
   avatarContainer: {
     position: "relative",
@@ -196,5 +235,23 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: "#00000099",
   },
+  finish: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: width * 0.03,
+  },
+  trophy: {
+    width: 80,
+    height: 80,
+  },
+  finishDistance: {
+    ...textPresets.progressText,
+    fontSize: 48,
+  },
+  finishDistanceKM: {
+    fontSize: 32,
+    color: "#00000099",
+  },
 });
+
 export default Main;
