@@ -1,1 +1,0 @@
-export { ConnectionQualityIndicator } from './ConnectionQualityIndicator';

@@ -7,6 +7,7 @@ import {
   setLastDeviceId,
 } from "../utils/storage";
 import { BLE_DEVICE, BLE_TIMEOUTS } from "../constants/bleConstants";
+import { connectionStore } from "./useConnectionMonitor";
 
 export const useBleScan = () => {
   const [devices, setDevices] = useState<Device[]>([]);
@@ -274,6 +275,11 @@ export const useBleScan = () => {
       clearTimeout(t);
     };
   }, [connectToDevice]);
+
+  // Оновлення глобального стору підключень
+  useEffect(() => {
+    connectionStore.updateBle(linkUp, isReconnecting);
+  }, [linkUp, isReconnecting]);
 
   return {
     devices,
