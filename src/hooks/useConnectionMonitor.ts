@@ -9,6 +9,7 @@
 
 import { useEffect } from 'react';
 import NetInfo from '@react-native-community/netinfo';
+import { shallow } from 'zustand/shallow';
 import { useConnectionStore } from '../store/connectionStore';
 
 export interface ConnectionMonitorHook {
@@ -35,12 +36,28 @@ export interface ConnectionMonitorHook {
  */
 export function useConnectionMonitor(): ConnectionMonitorHook {
   const updateInternet = useConnectionStore((state) => state.updateInternet);
+
+  // Select state values directly to prevent unnecessary re-renders
   const ble = useConnectionStore((state) => state.ble);
   const internet = useConnectionStore((state) => state.internet);
   const coaster = useConnectionStore((state) => state.coaster);
-  const hasAllConnections = useConnectionStore((state) => state.hasAllConnections());
-  const missingConnections = useConnectionStore((state) => state.missingConnections());
-  const canStartRace = useConnectionStore((state) => state.canStartRace());
+
+  // Compute derived values directly in the selector to get stable references
+  const hasAllConnections = useConnectionStore((state) =>
+    state.ble.isConnected && state.internet.isConnected && state.coaster.isConnected
+  );
+
+  const missingConnections = useConnectionStore((state) => {
+    const missing: string[] = [];
+    if (!state.internet.isConnected) missing.push('internet');
+    if (!state.ble.isConnected) missing.push('bluetooth');
+    if (!state.coaster.isConnected) missing.push('coaster');
+    return missing;
+  }, shallow);
+
+  const canStartRace = useConnectionStore((state) =>
+    state.ble.isConnected && state.internet.isConnected && state.coaster.isConnected
+  );
 
   // Моніторинг інтернету
   useEffect(() => {
