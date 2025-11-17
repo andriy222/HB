@@ -1,24 +1,22 @@
 import { Platform } from 'react-native';
 import { useMockBleScan } from './MockBleProvider';
 import { useBleScan } from '../useScanDevices';
+import { BLE_CONFIG } from '../../constants/sessionConstants';
 
-
-const isSimulator = Platform.OS === 'ios' 
+const isSimulator = Platform.OS === 'ios'
   ? !__DEV__ ? false : true
-  : Platform.OS === 'android' 
-  ? false 
+  : Platform.OS === 'android'
+  ? false
   : true;
 
-const USE_MOCK = true;
-
 export const useBleScanWithMock = () => {
-  const shouldUseMock = USE_MOCK || isSimulator;
-  
-  console.log(`🔧 Using ${shouldUseMock ? 'MOCK' : 'REAL'} BLE`);
-  
+  const shouldUseMock = BLE_CONFIG.USE_MOCK_BLE || isSimulator;
+
+  console.log(`🔧 BLE Scan Mode: ${shouldUseMock ? 'MOCK' : 'REAL'}`);
+
   if (shouldUseMock) {
     return useMockBleScan();
   }
-  
+
   return useBleScan();
 };

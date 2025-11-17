@@ -74,7 +74,8 @@ export default function RootLayout() {
           <Stack.Screen name="welcome" />
           <Stack.Screen name="(on-boarding)" />
           <Stack.Screen name="(main)" />
-          <Stack.Screen name="devtools" />
+          {/* Dev tools disabled - use BLE_CONFIG.USE_MOCK_BLE constant instead */}
+          {/* <Stack.Screen name="devtools" /> */}
         </Stack>
       </PaperProvider>
     </SafeAreaProvider>
