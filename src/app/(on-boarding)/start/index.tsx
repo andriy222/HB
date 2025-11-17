@@ -63,12 +63,8 @@ const Start = () => {
   };
 
   useEffect(() => {
-    const loadGender = () => {
-      const gender = getSelectedGender();
-      setSelectedGender(gender);
-    };
-
-    loadGender();
+    const gender = getSelectedGender();
+    setSelectedGender(gender);
   }, []);
 
   return (

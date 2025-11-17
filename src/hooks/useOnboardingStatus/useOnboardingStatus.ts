@@ -1,11 +1,11 @@
-import { useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { useBleStore } from '../../store/bleStore';
 import { getLastDeviceId, getSelectedGender } from '../../utils/storage';
 
-export type OnboardingStep = 
-  | 'complete' 
-  | 'need-connection' 
-  | 'need-gender' 
+export type OnboardingStep =
+  | 'complete'
+  | 'need-connection'
+  | 'need-gender'
   | 'need-start';
 
 interface OnboardingStatus {
@@ -18,8 +18,15 @@ interface OnboardingStatus {
 
 export function useOnboardingStatus(): OnboardingStatus {
   const { hasCompletedOnboarding } = useBleStore();
-  
-  const status = useMemo(() => {
+  const [status, setStatus] = useState<OnboardingStatus>({
+    isComplete: false,
+    hasGender: false,
+    hasDevice: false,
+    nextRoute: '/welcome',
+    currentStep: 'need-start',
+  });
+
+  useEffect(() => {
     const gender = getSelectedGender();
     const deviceId = getLastDeviceId();
     const hasGender = !!gender && gender !== 'male';
@@ -49,13 +56,13 @@ export function useOnboardingStatus(): OnboardingStatus {
       currentStep = 'need-gender';
     }
 
-    return {
+    setStatus({
       isComplete,
       hasGender,
       hasDevice,
       nextRoute,
       currentStep,
-    };
+    });
   }, [hasCompletedOnboarding]);
 
   return status;

@@ -57,14 +57,14 @@ export const useMockBleScan = () => {
     setConnectingDeviceId(deviceId);
 
     return new Promise<Device | null>((resolve) => {
-      setTimeout(() => {
+      setTimeout(async () => {
         console.log("📱 [MOCK] Connected!");
         setConnectedDevice(MOCK_DEVICE);
         setLinkUp(true);
         setIsConnecting(false);
         setConnectingDeviceId(null);
 
-        setLastDeviceId(MOCK_DEVICE.id);
+        await setLastDeviceId(MOCK_DEVICE.id);
         console.log("💾 [MOCK] Saved device ID to storage");
 
         resolve(MOCK_DEVICE);
@@ -77,7 +77,7 @@ export const useMockBleScan = () => {
     setConnectedDevice(null);
     setLinkUp(false);
 
-    clearLastDeviceId();
+    await clearLastDeviceId();
     console.log("💾 [MOCK] Cleared device ID from storage");
   };
 

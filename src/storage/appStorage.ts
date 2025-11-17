@@ -1,4 +1,5 @@
 import { Platform } from "react-native";
+
 interface Storage {
   getString: (key: string) => string | undefined;
   set: (key: string, value: string | number | boolean) => void;
@@ -9,7 +10,6 @@ interface Storage {
 let storage: Storage;
 
 if (Platform.OS === "web") {
-
   storage = {
     getString: (key: string) => {
       if (typeof window !== "undefined" && window.localStorage) {
@@ -37,44 +37,70 @@ if (Platform.OS === "web") {
   try {
     const { MMKV } = require("react-native-mmkv");
     const mmkv = new MMKV();
-    
+
     storage = {
       getString: (key: string) => mmkv.getString(key),
       set: (key: string, value: string | number | boolean) => mmkv.set(key, value),
       delete: (key: string) => mmkv.delete(key),
       clearAll: () => mmkv.clearAll(),
     };
-    
+
     console.log("💾 Using MMKV storage");
   } catch (e) {
     console.warn("⚠️ MMKV not available, falling back to AsyncStorage");
-    
+
     const AsyncStorage = require("@react-native-async-storage/async-storage").default;
-    
+
+    // In-memory cache for synchronous access
+    const cache = new Map<string, string>();
+    let initialized = false;
+
+    // Initialize cache asynchronously
+    AsyncStorage.getAllKeys().then(async (keys: string[]) => {
+      const items = await AsyncStorage.multiGet(keys);
+      items.forEach(([key, value]: [string, string | null]) => {
+        if (value !== null) {
+          cache.set(key, value);
+        }
+      });
+      initialized = true;
+      console.log("💾 AsyncStorage cache initialized");
+    });
+
     storage = {
       getString: (key: string) => {
-        let result: string | undefined;
-        AsyncStorage.getItem(key).then((v: string | null) => {
-          result = v ?? undefined;
-        });
-        return result;
+        if (!initialized) {
+          console.warn("⚠️ Storage not initialized yet, reading from AsyncStorage");
+        }
+        return cache.get(key);
       },
       set: (key: string, value: string | number | boolean) => {
-        AsyncStorage.setItem(key, String(value));
+        const strValue = String(value);
+        cache.set(key, strValue);
+        // Async write in background
+        AsyncStorage.setItem(key, strValue).catch((err) => {
+          console.error("Failed to write to AsyncStorage:", err);
+        });
       },
       delete: (key: string) => {
-        AsyncStorage.removeItem(key);
+        cache.delete(key);
+        // Async delete in background
+        AsyncStorage.removeItem(key).catch((err) => {
+          console.error("Failed to delete from AsyncStorage:", err);
+        });
       },
       clearAll: () => {
-        AsyncStorage.clear();
+        cache.clear();
+        // Async clear in background
+        AsyncStorage.clear().catch((err) => {
+          console.error("Failed to clear AsyncStorage:", err);
+        });
       },
     };
   }
 }
 
-
 export const mmkvStorage = {
-
   getString(key: string): string | null {
     return storage.getString(key) ?? null;
   },
@@ -127,12 +153,12 @@ export const mmkvStorage = {
 export const STORAGE_KEYS = {
   ACTIVE_SESSION: "hybit:activeSession",
   LAST_UPDATE: "hybit:lastUpdate",
-  
+
   GENDER: "user:gender",
   HYDRATION_GOAL_PER_PERIOD: "hydration:goalPerPeriod",
   HYDRATION_PERIOD_MIN: "hydration:periodMin",
-  
+
   LAST_DEVICE_ID: "ble:lastDeviceId",
-  
+
   ONBOARDING_COMPLETE: "app:onboardingComplete",
 } as const;

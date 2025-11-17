@@ -129,7 +129,7 @@ export function useCoasterSession(config: CoasterSessionConfig) {
       ble.resetSeenIndices();
       protocol.reset();
       autoSyncRef.current = false;
-      
+
       console.log(`🏁 Session started (${gender})`);
     }
   }, [isConnected, device, ble.isReady]);

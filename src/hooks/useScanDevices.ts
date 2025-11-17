@@ -102,8 +102,8 @@ export const useBleScan = () => {
     }
     setConnectedDevice(null);
     setLinkUp(false);
-    // User initiated disconnect â€“ don't auto-reconnect next launch
-    clearLastDeviceId();
+    // User initiated disconnect â€" don't auto-reconnect next launch
+    await clearLastDeviceId();
     autoReconnectAttemptsRef.current = 0;
     userInitiatedDisconnectRef.current = false;
     setIsReconnecting(false);
@@ -180,7 +180,7 @@ export const useBleScan = () => {
           reconnectTimerRef.current = null;
         }
         // Persist last connected device id for auto-reconnect
-        setLastDeviceId(deviceId);
+        await setLastDeviceId(deviceId);
 
         disconnectSubRef.current?.remove();
         disconnectSubRef.current = managerRef.current.onDeviceDisconnected(

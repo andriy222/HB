@@ -17,9 +17,9 @@ export default function AvatarSlider({
 }: AvatarSliderProps) {
   const [currentGender, setCurrentGender] = useState<Gender>(initialGender);
 
-  const handleGenderChange = (newGender: Gender) => {
+  const handleGenderChange = async (newGender: Gender) => {
     setCurrentGender(newGender);
-    setSelectedGender(newGender);
+    await setSelectedGender(newGender);
     onGenderChange?.(newGender);
   };
 

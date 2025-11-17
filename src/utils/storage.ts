@@ -91,12 +91,12 @@ import { mmkvStorage, STORAGE_KEYS } from "../storage/appStorage";
 //   }
 // }
 
-// // Debug 
+// // Debug
 // export function debugStorage() {
-//   console.log(" All Storage Keys:", storage.getAllKeys());
+//   console.log("📦 All Storage Keys:", storage.getAllKeys());
 //   storage.getAllKeys().forEach((key) => {
 //     const value = storage.getString(key) ?? storage.getNumber(key);
-//     console.log(` ${key}:`, value);
+//     console.log(`  ${key}:`, value);
 //   });
 // }
 
@@ -109,7 +109,7 @@ import { mmkvStorage, STORAGE_KEYS } from "../storage/appStorage";
 
 /**
  * Storage utilities using MMKV
- * 
+ *
  * Synchronous, fast key-value storage
  */
 
