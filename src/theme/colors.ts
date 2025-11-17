@@ -9,6 +9,11 @@ export const colors = {
   errorBG: "#FFD2D2",
   success: "#04B100",
   successDot:"#4CAF50",
+
+  // Stamina colors
+  green: "#04B100",
+  orange: "#FF9800",
+  red: "#FF0000",
   // Text colors
   text: {
     primary: "#000000",
