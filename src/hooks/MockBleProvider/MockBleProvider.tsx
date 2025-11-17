@@ -5,7 +5,7 @@ import {
   getLastDeviceId,
   setLastDeviceId,
 } from "../../utils/storage";
-import { connectionStore } from "../useConnectionMonitor";
+import { useConnectionStore } from "../../store/connectionStore";
 
 let mockCoaster: any = null;
 try {
@@ -21,6 +21,7 @@ const MOCK_DEVICE: Device = {
 } as Device;
 
 export const useMockBleScan = () => {
+  const updateBle = useConnectionStore((state) => state.updateBle);
   const [devices, setDevices] = useState<Device[]>([]);
   const [isScanning, setIsScanning] = useState(false);
   const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
@@ -108,8 +109,8 @@ export const useMockBleScan = () => {
   };
 
   useEffect(() => {
-    connectionStore.updateBle(linkUp, isReconnecting);
-  }, [linkUp, isReconnecting]);
+    updateBle(linkUp, isReconnecting);
+  }, [linkUp, isReconnecting, updateBle]);
 
   return {
     devices,
