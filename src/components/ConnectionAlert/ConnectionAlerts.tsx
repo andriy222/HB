@@ -1,9 +1,9 @@
 import React, { useEffect } from "react";
 import { View, StyleSheet, Alert, Linking, Text } from "react-native";
 import { useRouter } from "expo-router";
-import { useConnectionStatus } from "../../hooks/useConnectionStatus/useConectionStatus";
+import { useConnectionStatus } from "../../hooks/useConnectionStatus/useConnectionStatus";
 import { useGlobalConnectionMonitor } from "../../hooks/useConnectionMonitor";
-import ConnectionAlert from "./ ConnectionAlert";
+import ConnectionAlert from "./ConnectionAlert";
 
 export default function ConnectionAlerts() {
   const router = useRouter();

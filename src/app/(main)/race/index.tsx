@@ -24,6 +24,7 @@ import {
   setLastRaceDistance,
   clearLastRaceDistance,
 } from "../../../storage/appStorage";
+import { useGlobalConnectionMonitor } from "../../../hooks/useConnectionMonitor";
 
 const trophy = require("../../../../assets/win.png");
 const { width } = Dimensions.get("window");
@@ -35,6 +36,7 @@ const Main = () => {
   const [wasActive, setWasActive] = useState(false);
 
   const session = useSession();
+  const monitor = useGlobalConnectionMonitor();
 
   const isFinished = !session.isActive && lastRaceDistance > 0;
 
@@ -167,7 +169,7 @@ const Main = () => {
             </Text>
           )}
 
-          {!session.isActive && (
+          {!session.isActive && monitor.state.internet.isConnected && (
             <PaperButton onPress={handleStart} variant="big" style={styles.btn}>
               Start new Race
             </PaperButton>
