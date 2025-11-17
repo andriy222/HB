@@ -12,14 +12,14 @@ export const SESSION_CONFIG = {
   /** Maximum stamina points */
   maxStamina: 300,
 
-  /** Session duration in minutes (7 hours) */
-  duration: 420,
+  /** Session duration in minutes (TESTING: 6 min instead of 7 hours) */
+  duration: 6,
 
-  /** Total number of intervals in a session */
-  totalIntervals: 42,
+  /** Total number of intervals in a session (TESTING: 6 instead of 42) */
+  totalIntervals: 6,
 
-  /** Duration of each interval in minutes */
-  intervalDuration: 10,
+  /** Duration of each interval in minutes (TESTING: 1 min instead of 10 min) */
+  intervalDuration: 1,
 
   /** Maximum distance that can be achieved (marathon distance in km) */
   maxDistance: 42.195,
@@ -67,21 +67,23 @@ export const STAMINA_PENALTY = {
 
 /**
  * Hydration Targets by Gender
+ * TESTING MODE: Reduced proportionally for 6-min session
+ * Original: 3500ml/420min = 8.33ml/min → 6min × 8.33 = 50ml
  */
 export const HYDRATION_TARGETS = {
   male: {
-    /** Total hydration target for 7-hour session (ml) */
-    total: 3500,
+    /** Total hydration target for session (TESTING: 50ml for 6min instead of 3500ml for 7h) */
+    total: 50,
 
-    /** Required hydration in first 10 minutes (ml) */
-    first10min: 500,
+    /** Required hydration in first interval (TESTING: 12ml for 1min instead of 500ml for 10min) */
+    first10min: 12,
   },
   female: {
-    /** Total hydration target for 7-hour session (ml) */
-    total: 3000,
+    /** Total hydration target for session (TESTING: 43ml for 6min instead of 3000ml for 7h) */
+    total: 43,
 
-    /** Required hydration in first 10 minutes (ml) */
-    first10min: 500,
+    /** Required hydration in first interval (TESTING: 12ml for 1min instead of 500ml for 10min) */
+    first10min: 12,
   },
 } as const;
 

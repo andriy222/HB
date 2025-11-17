@@ -34,10 +34,11 @@ export function useSession() {
       updateSessionState();
     },
     onSessionComplete: () => {
-      console.log("⏱️ 7 hours elapsed → auto-ending session");
+      console.log("⏱️ Session time elapsed → auto-ending session");
       end();
     },
     isActive: session?.isActive ?? false,
+    sessionStartTime: session?.startTime, // Pass startTime for restoration
   });
 
   /**
@@ -91,8 +92,8 @@ export function useSession() {
   const recordDrink = useCallback((ml: number) => {
     if (!session || !session.isActive) return;
 
-    // Use timer's current interval
-    const intervalIndex = intervalTimer.currentInterval;
+    // Use timer's current interval (always up-to-date)
+    const intervalIndex = intervalTimer.getCurrentInterval();
     currentIntervalRef.current = intervalIndex;
     
     // Get or create interval
@@ -149,7 +150,7 @@ export function useSession() {
     // Clear from storage
     clearSession();
 
-    console.log(`🏁 Session complete | Distance: ${session.totalDistance.toFixed(2)}km${isNewBest ? " 🏆 NEW BEST!" : ""}`);
+    console.log(`🏁 Session complete | Duration: ${sessionDuration}min | Distance: ${session.totalDistance.toFixed(2)}km${isNewBest ? " 🏆 NEW BEST!" : ""}`);
   }, [session]);
 
   /**
@@ -159,7 +160,7 @@ export function useSession() {
   const getDistance = useCallback(() => session?.totalDistance ?? 0, [session]);
   const getElapsedTime = useCallback(() => intervalTimer.getElapsedMinutes(), [intervalTimer]);
   const getRemainingTime = useCallback(() => intervalTimer.getRemainingMinutes(), [intervalTimer]);
-  const getCurrentInterval = useCallback(() => intervalTimer.currentInterval, [intervalTimer]);
+  const getCurrentInterval = useCallback(() => intervalTimer.getCurrentInterval(), [intervalTimer]);
   const isActive = useCallback(() => session?.isActive ?? false, [session]);
 
   /**
@@ -192,13 +193,14 @@ export function useSession() {
     (async () => {
       const saved = await loadSession();
       if (!isMounted || !saved) return;
-      
+
       if (saved.isActive) {
-        console.log("💾 Restoring active session");
+        const elapsed = Math.floor((Date.now() - saved.startTime) / 1000);
+        console.log(`💾 Restoring active session (${elapsed}s elapsed, ${saved.intervals.length} intervals)`);
         setSession(saved);
         intervalsRef.current = saved.intervals;
         currentIntervalRef.current = saved.intervals.length;
-        
+
         const avatar = getAvatarState(saved.currentStamina);
         setAvatarState(avatar);
       } else {
