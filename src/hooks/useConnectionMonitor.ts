@@ -1,5 +1,3 @@
-
-
 import { useEffect } from 'react';
 import NetInfo from '@react-native-community/netinfo';
 import { useConnectionStore } from '../store/connectionStore';
@@ -19,10 +17,8 @@ export interface ConnectionMonitorHook {
   };
   hasAllConnections: boolean;
   missingConnections: string[];
-
   canStartRace: boolean; 
 }
-
 
 /**
  * Хук для моніторингу всіх підключень
@@ -33,13 +29,27 @@ export function useConnectionMonitor(): ConnectionMonitorHook {
   const ble = useConnectionStore((state) => state.ble);
   const internet = useConnectionStore((state) => state.internet);
   const coaster = useConnectionStore((state) => state.coaster);
-  const hasAllConnections = useConnectionStore((state) => state.hasAllConnections());
-  const missingConnections = useConnectionStore((state) => state.missingConnections());
-  const canStartRace = useConnectionStore((state) => state.canStartRace());
+
+  // Compute derived values
+  const hasAllConnections = useConnectionStore((state) =>
+    state.ble.isConnected && state.internet.isConnected && state.coaster.isConnected
+  );
+
+  // ✅ Видалити shallow - не потрібен для примітивів
+  const missingConnections = useConnectionStore((state) => {
+    const missing: string[] = [];
+    if (!state.internet.isConnected) missing.push('internet');
+    if (!state.ble.isConnected) missing.push('bluetooth');
+    if (!state.coaster.isConnected) missing.push('coaster');
+    return missing;
+  });
+  
+  const canStartRace = useConnectionStore((state) =>
+    state.ble.isConnected && state.internet.isConnected && state.coaster.isConnected
+  );
 
   // Моніторинг інтернету
   useEffect(() => {
-
     const unsubscribe = NetInfo.addEventListener((netState) => {
       const isOnline = netState.isConnected ?? false;
       updateInternet(isOnline);
@@ -47,13 +57,12 @@ export function useConnectionMonitor(): ConnectionMonitorHook {
 
     NetInfo.fetch().then((netState) => {
       const isOnline = netState.isConnected ?? false;
-      connectionStore.updateInternet(isOnline);
+      updateInternet(isOnline);
     });
 
     return () => {
       unsubscribe();
     };
-
   }, [updateInternet]);
 
   return {
