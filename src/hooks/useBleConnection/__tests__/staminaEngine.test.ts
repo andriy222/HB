@@ -19,31 +19,31 @@ describe('staminaEngine', () => {
       expect(calculateFirstPenalty(20, target)).toBe(STAMINA_PENALTY.first.ml500Plus); // 0
     });
 
-    it('should return -60 penalty when consuming 50-99% of target', () => {
-      expect(calculateFirstPenalty(6, target)).toBe(STAMINA_PENALTY.first.ml250to499); // -60 (50%)
-      expect(calculateFirstPenalty(10, target)).toBe(STAMINA_PENALTY.first.ml250to499); // -60 (83%)
-      expect(calculateFirstPenalty(11.9, target)).toBe(STAMINA_PENALTY.first.ml250to499); // -60 (99%)
+    it('should return -15 penalty when consuming 50-99% of target', () => {
+      expect(calculateFirstPenalty(6, target)).toBe(STAMINA_PENALTY.first.ml250to499); // -15 (50%)
+      expect(calculateFirstPenalty(10, target)).toBe(STAMINA_PENALTY.first.ml250to499); // -15 (83%)
+      expect(calculateFirstPenalty(11.9, target)).toBe(STAMINA_PENALTY.first.ml250to499); // -15 (99%)
     });
 
-    it('should return -120 penalty when consuming 0.2-49% of target', () => {
-      expect(calculateFirstPenalty(0.024, target)).toBe(STAMINA_PENALTY.first.ml1to249); // -120 (0.2%)
-      expect(calculateFirstPenalty(1, target)).toBe(STAMINA_PENALTY.first.ml1to249); // -120 (8%)
-      expect(calculateFirstPenalty(5, target)).toBe(STAMINA_PENALTY.first.ml1to249); // -120 (42%)
+    it('should return -30 penalty when consuming 0.2-49% of target', () => {
+      expect(calculateFirstPenalty(0.024, target)).toBe(STAMINA_PENALTY.first.ml1to249); // -30 (0.2%)
+      expect(calculateFirstPenalty(1, target)).toBe(STAMINA_PENALTY.first.ml1to249); // -30 (8%)
+      expect(calculateFirstPenalty(5, target)).toBe(STAMINA_PENALTY.first.ml1to249); // -30 (42%)
     });
 
-    it('should return -160 penalty when consuming 0ml', () => {
-      expect(calculateFirstPenalty(0, target)).toBe(STAMINA_PENALTY.first.ml0); // -160
+    it('should return -40 penalty when consuming 0ml', () => {
+      expect(calculateFirstPenalty(0, target)).toBe(STAMINA_PENALTY.first.ml0); // -40
     });
 
     it('should handle edge cases around thresholds', () => {
       // Exactly at 50% threshold
-      expect(calculateFirstPenalty(6.0, target)).toBe(STAMINA_PENALTY.first.ml250to499); // -60
+      expect(calculateFirstPenalty(6.0, target)).toBe(STAMINA_PENALTY.first.ml250to499); // -15
 
       // Just below 50% threshold
-      expect(calculateFirstPenalty(5.99, target)).toBe(STAMINA_PENALTY.first.ml1to249); // -120
+      expect(calculateFirstPenalty(5.99, target)).toBe(STAMINA_PENALTY.first.ml1to249); // -30
 
       // Just below 100% threshold
-      expect(calculateFirstPenalty(11.99, target)).toBe(STAMINA_PENALTY.first.ml250to499); // -60
+      expect(calculateFirstPenalty(11.99, target)).toBe(STAMINA_PENALTY.first.ml250to499); // -15
     });
   });
 
@@ -56,39 +56,39 @@ describe('staminaEngine', () => {
       expect(calculateRegularPenalty(required, required + 5)).toBe(0);
     });
 
-    it('should return -8 penalty for 0-25% shortage', () => {
-      expect(calculateRegularPenalty(required, required * 0.76)).toBe(STAMINA_PENALTY.regular.shortage0to25); // -8 (24% shortage)
-      expect(calculateRegularPenalty(required, required * 0.8)).toBe(STAMINA_PENALTY.regular.shortage0to25); // -8 (20% shortage)
-      expect(calculateRegularPenalty(required, required * 0.99)).toBe(STAMINA_PENALTY.regular.shortage0to25); // -8 (1% shortage)
+    it('should return -2 penalty for 0-25% shortage', () => {
+      expect(calculateRegularPenalty(required, required * 0.76)).toBe(STAMINA_PENALTY.regular.shortage0to25); // -2 (24% shortage)
+      expect(calculateRegularPenalty(required, required * 0.8)).toBe(STAMINA_PENALTY.regular.shortage0to25); // -2 (20% shortage)
+      expect(calculateRegularPenalty(required, required * 0.99)).toBe(STAMINA_PENALTY.regular.shortage0to25); // -2 (1% shortage)
     });
 
-    it('should return -16 penalty for 25-50% shortage', () => {
-      expect(calculateRegularPenalty(required, required * 0.5)).toBe(STAMINA_PENALTY.regular.shortage25to50); // -16 (50% shortage)
-      expect(calculateRegularPenalty(required, required * 0.6)).toBe(STAMINA_PENALTY.regular.shortage25to50); // -16 (40% shortage)
+    it('should return -4 penalty for 25-50% shortage', () => {
+      expect(calculateRegularPenalty(required, required * 0.5)).toBe(STAMINA_PENALTY.regular.shortage25to50); // -4 (50% shortage)
+      expect(calculateRegularPenalty(required, required * 0.6)).toBe(STAMINA_PENALTY.regular.shortage25to50); // -4 (40% shortage)
     });
 
-    it('should return -24 penalty for 50-75% shortage', () => {
-      expect(calculateRegularPenalty(required, required * 0.25)).toBe(STAMINA_PENALTY.regular.shortage50to75); // -24 (75% shortage)
-      expect(calculateRegularPenalty(required, required * 0.4)).toBe(STAMINA_PENALTY.regular.shortage50to75); // -24 (60% shortage)
+    it('should return -6 penalty for 50-75% shortage', () => {
+      expect(calculateRegularPenalty(required, required * 0.25)).toBe(STAMINA_PENALTY.regular.shortage50to75); // -6 (75% shortage)
+      expect(calculateRegularPenalty(required, required * 0.4)).toBe(STAMINA_PENALTY.regular.shortage50to75); // -6 (60% shortage)
     });
 
-    it('should return -26 penalty for 75-100% shortage', () => {
-      expect(calculateRegularPenalty(required, 0)).toBe(STAMINA_PENALTY.regular.shortage75to100); // -26 (100% shortage)
-      expect(calculateRegularPenalty(required, required * 0.1)).toBe(STAMINA_PENALTY.regular.shortage75to100); // -26 (90% shortage)
+    it('should return -6.5 penalty for 75-100% shortage', () => {
+      expect(calculateRegularPenalty(required, 0)).toBe(STAMINA_PENALTY.regular.shortage75to100); // -6.5 (100% shortage)
+      expect(calculateRegularPenalty(required, required * 0.1)).toBe(STAMINA_PENALTY.regular.shortage75to100); // -6.5 (90% shortage)
     });
 
     it('should handle edge cases around thresholds', () => {
       // Just below 25% shortage
-      expect(calculateRegularPenalty(required, required * 0.751)).toBe(STAMINA_PENALTY.regular.shortage0to25); // -8
+      expect(calculateRegularPenalty(required, required * 0.751)).toBe(STAMINA_PENALTY.regular.shortage0to25); // -2
 
       // Exactly at 25% shortage - should be in next bracket
-      expect(calculateRegularPenalty(required, required * 0.75)).toBe(STAMINA_PENALTY.regular.shortage25to50); // -16
+      expect(calculateRegularPenalty(required, required * 0.75)).toBe(STAMINA_PENALTY.regular.shortage25to50); // -4
 
       // Just below 50% shortage
-      expect(calculateRegularPenalty(required, required * 0.501)).toBe(STAMINA_PENALTY.regular.shortage25to50); // -16
+      expect(calculateRegularPenalty(required, required * 0.501)).toBe(STAMINA_PENALTY.regular.shortage25to50); // -4
 
       // Exactly at 50% shortage - should be in next bracket
-      expect(calculateRegularPenalty(required, required * 0.5)).toBe(STAMINA_PENALTY.regular.shortage25to50); // -16
+      expect(calculateRegularPenalty(required, required * 0.5)).toBe(STAMINA_PENALTY.regular.shortage25to50); // -4
     });
   });
 

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import NetInfo from '@react-native-community/netinfo';
 import { useConnectionStore } from '../store/connectionStore';
 
@@ -17,7 +17,7 @@ export interface ConnectionMonitorHook {
   };
   hasAllConnections: boolean;
   missingConnections: string[];
-  canStartRace: boolean; 
+  canStartRace: boolean;
 }
 
 /**
@@ -35,15 +35,15 @@ export function useConnectionMonitor(): ConnectionMonitorHook {
     state.ble.isConnected && state.internet.isConnected && state.coaster.isConnected
   );
 
-  // ✅ Видалити shallow - не потрібен для примітивів
-  const missingConnections = useConnectionStore((state) => {
+  // Memoize missing connections array to prevent recreating on every render
+  const missingConnections = useMemo(() => {
     const missing: string[] = [];
-    if (!state.internet.isConnected) missing.push('internet');
-    if (!state.ble.isConnected) missing.push('bluetooth');
-    if (!state.coaster.isConnected) missing.push('coaster');
+    if (!internet.isConnected) missing.push('internet');
+    if (!ble.isConnected) missing.push('bluetooth');
+    if (!coaster.isConnected) missing.push('coaster');
     return missing;
-  });
-  
+  }, [internet.isConnected, ble.isConnected, coaster.isConnected]);
+
   const canStartRace = useConnectionStore((state) =>
     state.ble.isConnected && state.internet.isConnected && state.coaster.isConnected
   );
