@@ -3,6 +3,7 @@ import AuthBackground from "../../../UI/layout/backgrounds/AuthBackground";
 import { Dimensions, StyleSheet, Text, View, Image } from "react-native";
 import { colors, textPresets } from "../../../theme";
 import { useConnectionStatus } from "../../../hooks/useConnectionStatus/useConectionStatus";
+import { useEffect } from "react";
 
 const { width, height } = Dimensions.get("window");
 const coaster = require("../../../../assets/coaster.png");
@@ -10,6 +11,10 @@ const coaster = require("../../../../assets/coaster.png");
 const CoasterStatus = () => {
   const status = useConnectionStatus();
   const isConnected = status.coaster.isConnected;
+  useEffect(() => {
+    console.log("isCOnnected", isConnected);
+  }, [isConnected]);
+
   return (
     <AuthBackground isSecondary={false} footer={<BottomNavigation />}>
       <View style={styles.container}>

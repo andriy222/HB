@@ -21,7 +21,7 @@ export default function Welcome() {
     router.push(nextRoute);
   };
   const handleDevTools = () => {
-    router.push("/(main)/dev-tools");
+    router.push("/devtools");
   };
 
   return (
