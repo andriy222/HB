@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Platform } from 'react-native';
 import { useBleScanWithMock } from '../MockBleProvider/useBleScanWithMock';
-import { useInternetConnection } from '../useInternetConnection';
+import { useGlobalConnectionMonitor, connectionStore } from '../useConnectionMonitor';
 
 export interface ConnectionStatus {
   coaster: {
@@ -20,7 +20,7 @@ export interface ConnectionStatus {
 
 export function useConnectionStatus(): ConnectionStatus {
   const { linkUp, connectedDevice } = useBleScanWithMock();
-  const internetConnected = useInternetConnection();
+  const monitor = useGlobalConnectionMonitor();
   const [bluetoothEnabled, setBluetoothEnabled] = useState(true);
 
   useEffect(() => {
@@ -29,9 +29,15 @@ export function useConnectionStatus(): ConnectionStatus {
     }
   }, []);
 
+  // Оновлюємо coaster статус у глобальному сторі
+  useEffect(() => {
+    const isCoasterConnected = linkUp && !!connectedDevice;
+    connectionStore.updateCoaster(isCoasterConnected);
+  }, [linkUp, connectedDevice]);
+
   return {
     coaster: {
-      isConnected: linkUp && !!connectedDevice,
+      isConnected: monitor.state.coaster.isConnected,
       message: 'Please connect your Coaster',
     },
     bluetooth: {
@@ -39,7 +45,7 @@ export function useConnectionStatus(): ConnectionStatus {
       message: 'Please connect your bluetooth',
     },
     internet: {
-      isConnected: internetConnected ?? false,
+      isConnected: monitor.state.internet.isConnected,
       message: 'Please connect your internet',
     },
   };
