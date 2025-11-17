@@ -1,17 +1,14 @@
 import { Device } from "react-native-ble-plx";
 import { useMockBLE } from "./useMockBle";
 import { useBLEConnection } from "../useBleConnection/useBleConnection";
-import { mmkvStorage } from "../../storage/appStorage";
+import { BLE_CONFIG } from "../../constants/sessionConstants";
 
 /**
  * BLE Connection Wrapper
  *
  * Automatically switches between real BLE and mock
  *
- * Mock mode enabled when:
- * - No device connected
- * - MOCK_MODE flag is set
- * - Running in simulator
+ * Mock mode controlled by BLE_CONFIG.USE_MOCK_BLE constant
  */
 
 interface BLEWrapperConfig {
@@ -32,9 +29,9 @@ export function useBLEWrapper(
 
   // Check if mock mode should be enabled
   const mockModeEnabled =
-    forceMock || mmkvStorage.getBoolean("dev:mockMode") || !device;
+    forceMock || BLE_CONFIG.USE_MOCK_BLE || !device;
 
-  console.log(`🔧 BLE Mode: ${mockModeEnabled ? "MOCK" : "REAL"}`);
+  console.log(`🔧 BLE Connection Mode: ${mockModeEnabled ? "MOCK" : "REAL"}`);
 
   // Real BLE
   const realBLE = useBLEConnection(
@@ -56,17 +53,8 @@ export function useBLEWrapper(
 }
 
 /**
- * Toggle mock mode
- */
-export function toggleMockMode() {
-  const current = mmkvStorage.getBoolean("dev:mockMode") ?? false;
-  mmkvStorage.set("dev:mockMode", !current);
-  console.log(`🔧 Mock mode: ${!current ? "ON" : "OFF"}`);
-}
-
-/**
  * Check if mock mode is enabled
  */
 export function isMockMode(): boolean {
-  return mmkvStorage.getBoolean("dev:mockMode") ?? false;
+  return BLE_CONFIG.USE_MOCK_BLE;
 }

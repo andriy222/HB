@@ -4,19 +4,15 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Switch,
 } from "react-native";
 
 import { useState, useEffect } from "react";
 
 import { mockCoaster } from "../hooks/MockBleProvider/MockCoaster";
-import {
-  isMockMode,
-  toggleMockMode,
-} from "../hooks/MockBleProvider/useBleWrapper";
+import { isMockMode } from "../hooks/MockBleProvider/useBleWrapper";
+import { BLE_CONFIG } from "../constants/sessionConstants";
 
 export default function DevToolsScreen() {
-  const [mockEnabled, setMockEnabled] = useState(isMockMode());
   const [coasterState, setCoasterState] = useState(mockCoaster.getState());
 
   // Update state every second
@@ -28,26 +24,21 @@ export default function DevToolsScreen() {
     return () => clearInterval(timer);
   }, []);
 
-  const handleToggleMock = () => {
-    toggleMockMode();
-    setMockEnabled(isMockMode());
-  };
-
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>🛠️ Dev Tools</Text>
       <Text style={styles.subtitle}>Testing without hardware</Text>
 
-      {/* Mock Mode Toggle */}
+      {/* Mock Mode Status */}
       <View style={styles.card}>
-        <View style={styles.row}>
-          <Text style={styles.label}>Mock Mode</Text>
-          <Switch value={mockEnabled} onValueChange={handleToggleMock} />
-        </View>
+        <Text style={styles.label}>Mock Mode Status</Text>
         <Text style={styles.hint}>
-          {mockEnabled
-            ? "✅ Using simulated coaster"
-            : "🔌 Using real BLE device"}
+          {BLE_CONFIG.USE_MOCK_BLE
+            ? "✅ Using simulated coaster (MOCK)"
+            : "🔌 Using real BLE device (REAL)"}
+        </Text>
+        <Text style={styles.infoText}>
+          To change mode, edit BLE_CONFIG.USE_MOCK_BLE in src/constants/sessionConstants.ts
         </Text>
       </View>
 
