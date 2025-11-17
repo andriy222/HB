@@ -5,6 +5,7 @@ import {
   getLastDeviceId,
   setLastDeviceId,
 } from "../../utils/storage";
+import { connectionStore } from "../useConnectionMonitor";
 
 // Import mockCoaster for data generation
 let mockCoaster: any = null;
@@ -106,10 +107,14 @@ export const useMockBleScan = () => {
     setConnectedDevice(null);
     setLinkUp(false);
 
-
     clearLastDeviceId();
     console.log("💾 [MOCK] Cleared device ID");
   };
+
+  // Оновлення глобального стору підключень для Mock BLE
+  useEffect(() => {
+    connectionStore.updateBle(linkUp, isReconnecting);
+  }, [linkUp, isReconnecting]);
 
   return {
     devices,

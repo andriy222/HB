@@ -32,7 +32,7 @@ export const useBleScan = () => {
   const reconnectActiveRef = useRef(false);
 
   const TARGET_NAME = BLE_DEVICE.TARGET_NAME;
-  const TARGET_SERVICE = BLE_DEVICE.SERVICE_UUID; 
+  const TARGET_SERVICE = BLE_DEVICE.SERVICE_UUID.toLowerCase(); // Normalize to lowercase
 
   useEffect(() => {
     managerRef.current = new BleManager();
