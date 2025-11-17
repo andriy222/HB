@@ -129,8 +129,13 @@ export function clearLastDeviceId(): void {
 // Gender
 export type Gender = "male" | "female";
 
-export function getSelectedGender(): Gender {
+/**
+ * Get selected gender from storage
+ * Returns null if no gender has been selected yet
+ */
+export function getSelectedGender(): Gender | null {
   const value = mmkvStorage.getString(STORAGE_KEYS.GENDER);
+  if (!value) return null;
   return value === "female" ? "female" : "male";
 }
 

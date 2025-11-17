@@ -125,12 +125,19 @@ export function useCoasterSession(config: CoasterSessionConfig) {
   useEffect(() => {
     if (isConnected && device && !sessionStartedRef.current && ble.isReady) {
       const gender = getSelectedGender();
+
+      // If no gender selected, cannot start session
+      if (!gender) {
+        console.warn("⚠️ Cannot start session: gender not selected");
+        return;
+      }
+
       session.start(gender);
       sessionStartedRef.current = true;
       ble.resetSeenIndices();
       protocol.reset();
       autoSyncRef.current = false;
-      
+
       console.log(`🏁 Session started (${gender})`);
     }
   }, [isConnected, device, ble.isReady]);

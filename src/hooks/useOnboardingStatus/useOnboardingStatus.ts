@@ -18,11 +18,14 @@ interface OnboardingStatus {
 
 export function useOnboardingStatus(): OnboardingStatus {
   const { hasCompletedOnboarding } = useBleStore();
-  
+
+  // Read values outside useMemo to make them reactive
+  const gender = getSelectedGender();
+  const deviceId = getLastDeviceId();
+
   const status = useMemo(() => {
-    const gender = getSelectedGender();
-    const deviceId = getLastDeviceId();
-    const hasGender = !!gender && gender !== 'male';
+    // Check if gender has been selected (not null)
+    const hasGender = gender !== null;
     const hasDevice = !!deviceId;
 
     console.log('🔍 Onboarding status:', {
@@ -56,7 +59,7 @@ export function useOnboardingStatus(): OnboardingStatus {
       nextRoute,
       currentStep,
     };
-  }, [hasCompletedOnboarding]);
+  }, [hasCompletedOnboarding, gender, deviceId]);
 
   return status;
 }

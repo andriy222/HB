@@ -23,7 +23,8 @@ const Main = () => {
     debugStorage();
     const gender = getSelectedGender();
     console.log(gender);
-    setSelectedGender(gender);
+    // Use 'male' as default if no gender selected
+    setSelectedGender(gender || 'male');
   }, [storage]);
   return (
     <AuthBackground

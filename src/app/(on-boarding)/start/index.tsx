@@ -65,7 +65,8 @@ const Start = () => {
   useEffect(() => {
     const loadGender = () => {
       const gender = getSelectedGender();
-      setSelectedGender(gender);
+      // Use 'male' as default if no gender selected
+      setSelectedGender(gender || 'male');
     };
 
     loadGender();
