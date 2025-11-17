@@ -105,7 +105,6 @@ export function useIntervalTimer(config: IntervalTimerConfig) {
     const actualStartTime = startTime ?? Date.now();
     sessionStartTimeRef.current = actualStartTime;
 
-    // Calculate current interval based on elapsed time
     const elapsed = Date.now() - actualStartTime;
     const elapsedMinutes = elapsed / (60 * 1000);
     const intervalIndex = Math.floor(elapsedMinutes / SESSION_CONFIG.intervalDuration);
@@ -133,7 +132,6 @@ export function useIntervalTimer(config: IntervalTimerConfig) {
       sessionTimerRef.current = null;
     }
 
-    // Don't reset sessionStartTimeRef - we need it for restoration
     console.log("⏱️ Interval timer stopped");
   }, []);
 
@@ -166,7 +164,6 @@ export function useIntervalTimer(config: IntervalTimerConfig) {
 
   useEffect(() => {
     if (isActive) {
-      // Only start if not already started, or if startTime changed
       const shouldStart =
         !sessionStartTimeRef.current ||
         (sessionStartTime && sessionStartTimeRef.current !== sessionStartTime);
@@ -184,8 +181,7 @@ export function useIntervalTimer(config: IntervalTimerConfig) {
         stop();
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isActive, sessionStartTime]); // Depend on sessionStartTime for proper restoration
+  }, [isActive, sessionStartTime]); 
 
   const getElapsedMinutes = useCallback((): number => {
     if (!sessionStartTimeRef.current) return 0;
@@ -215,7 +211,7 @@ export function useIntervalTimer(config: IntervalTimerConfig) {
   }, [calculateCurrentInterval]);
 
   return {
-    currentInterval: getCurrentInterval(), // Always return live value
+    currentInterval: getCurrentInterval(),
     getCurrentInterval,
     getElapsedMinutes,
     getRemainingMinutes,

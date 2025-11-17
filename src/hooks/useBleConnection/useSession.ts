@@ -46,7 +46,6 @@ export function useSession() {
         console.log(`💧 Interval ${index} auto-created with 0ml (no hydration)`);
       }
 
-      // Update UI state
       updateSessionState();
     },
     onSessionComplete: () => {
@@ -54,7 +53,7 @@ export function useSession() {
       end();
     },
     isActive: session?.isActive ?? false,
-    sessionStartTime: session?.startTime, // Pass startTime for restoration
+    sessionStartTime: session?.startTime, 
   });
 
   /**
@@ -263,7 +262,7 @@ export function useSession() {
       const m = Math.floor(min % 60);
       return `${h}:${m.toString().padStart(2, "0")}`;
     },
-    formatDistance: (km: number) => `${km.toFixed(2)} km`,
+    formatDistance: (km: number) => `${km.toFixed(2)}`,
     formatStamina: (s: number) => `${s}/300`,
   };
 }

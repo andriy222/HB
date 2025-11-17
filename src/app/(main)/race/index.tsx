@@ -1,10 +1,15 @@
 import React, { useEffect, useState, useMemo } from "react";
 import AuthBackground from "../../../UI/layout/backgrounds/AuthBackground";
-import { debugStorage, storage } from "../../../store/bleStore";
+import { clearStorage, debugStorage, storage } from "../../../store/bleStore";
 import Podium from "../../../components/Podium/Podium";
 import BottomNavigation from "../../../components/BottomNavigation/BottomNavigation";
 import SpriteAnimator from "../../../components/SpriteAnimator/SpriteAnimator";
-import { AVATAR_SIZE, FEMALE, MALE, AvatarAnimation } from "../../../utils/constants";
+import {
+  AVATAR_SIZE,
+  FEMALE,
+  MALE,
+  AvatarAnimation,
+} from "../../../utils/constants";
 import { Gender, getSelectedGender } from "../../../utils/storage";
 import { View, StyleSheet, Dimensions, Text } from "react-native";
 import ConnectionAlerts from "../../../components/ConnectionAlert/ConnectionAlerts";
@@ -22,8 +27,9 @@ const Main = () => {
   const [bestRun, setBestRun] = useState<number>(0);
 
   const session = useSession();
-
-  // Load best run on mount
+  function clear() {
+    clearStorage();
+  }
   useEffect(() => {
     const best = getBestRun();
     if (best) {
@@ -31,7 +37,6 @@ const Main = () => {
     }
   }, []);
 
-  // Update gender on mount
   useEffect(() => {
     debugStorage();
     const gender = getSelectedGender();
@@ -39,19 +44,16 @@ const Main = () => {
     setSelectedGender(gender);
   }, [storage]);
 
-  // Get avatar animation based on stamina state
   const avatarAnimation: AvatarAnimation = useMemo(() => {
     const character = selectedGender === "male" ? MALE : FEMALE;
 
     if (!session.isActive) {
-      // Show standing pose when not running
       return {
         sprite: character.frontPoseSprite,
         data: character.frontPoseData,
       };
     }
 
-    // Show running animation based on stamina state
     switch (session.avatarState) {
       case "normal":
         return character.normalRunning;
@@ -67,7 +69,6 @@ const Main = () => {
     }
   }, [selectedGender, session.avatarState, session.isActive]);
 
-  // Calculate stamina ratio for progress bar (0-1)
   const staminaRatio = session.stamina / SESSION_CONFIG.maxStamina;
 
   function handleStart() {
@@ -79,7 +80,6 @@ const Main = () => {
     session.start(selectedGender);
   }
 
-  // Mock function for testing - adds 100ml to current session
   function handleMockDrink() {
     if (!session.isActive) {
       console.log("⚠️ No active session");
@@ -109,11 +109,14 @@ const Main = () => {
         <View style={styles.dataContainer}>
           <PaperProgressBar progress={staminaRatio} />
           <Text style={styles.progressText}>
-            {session.formatDistance(session.distance)} / {SESSION_CONFIG.maxDistance} km
+            {session.formatDistance(session.distance)}
+            <Text style={styles.progressTextKM}>km</Text> /
+            {SESSION_CONFIG.maxDistance}
+            <Text style={styles.progressTextKM}>km</Text>
           </Text>
-          <Text style={styles.staminaText}>
+          {/* <Text style={styles.staminaText}>
             Stamina: {session.formatStamina(session.stamina)}
-          </Text>
+          </Text> */}
           {bestRun > 0 && (
             <Text style={styles.bestRun}>
               best run: {bestRun.toFixed(2)} km
@@ -121,27 +124,28 @@ const Main = () => {
           )}
           {session.isActive && (
             <Text style={styles.timeText}>
-              Time: {session.formatTime(session.elapsedMinutes)} / {session.formatTime(SESSION_CONFIG.duration)}
+              Time: {session.formatTime(session.elapsedMinutes)} /{" "}
+              {session.formatTime(SESSION_CONFIG.duration)}
             </Text>
           )}
-          <PaperButton
-            onPress={handleStart}
-            variant="big"
-            style={styles.btn}
-            disabled={session.isActive}
-          >
-            {session.isActive ? "Race in Progress..." : "Start new Race"}
-          </PaperButton>
-          {/* Mock button for testing */}
-          {session.isActive && (typeof __DEV__ !== 'undefined' && __DEV__) && (
+          {!session.isActive && (
             <PaperButton
-              onPress={handleMockDrink}
+              onPress={handleStart}
               variant="big"
-              style={[styles.btn, styles.mockBtn]}
+              style={styles.btn}
+              disabled={session.isActive}
             >
+              Start new Race
+            </PaperButton>
+          )}
+          {/* Mock button for testing */}
+
+          {session.isActive && typeof __DEV__ !== "undefined" && __DEV__ && (
+            <PaperButton onPress={handleMockDrink} variant="big">
               +100ml (Test)
             </PaperButton>
           )}
+          {/* <PaperButton onPress={clear}>clearStorage</PaperButton> */}
         </View>
       </View>
     </AuthBackground>
@@ -151,6 +155,7 @@ const Main = () => {
 const styles = StyleSheet.create({
   runningContainer: {
     position: "relative",
+    bottom: 80,
   },
   avatarContainer: {
     position: "relative",
@@ -159,8 +164,11 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   dataContainer: {
+    position: "relative",
+    bottom: width * 0.1,
     flexDirection: "column",
     alignItems: "center",
+    gap: width * 0.05,
   },
   progressText: {
     ...textPresets.progressText,
@@ -182,10 +190,11 @@ const styles = StyleSheet.create({
   },
   btn: {
     width: 230,
+    borderRadius: 32,
   },
-  mockBtn: {
-    marginTop: 10,
-    backgroundColor: "#4CAF50",
+  progressTextKM: {
+    fontSize: 20,
+    color: "#00000099",
   },
 });
 export default Main;

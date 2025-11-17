@@ -26,6 +26,13 @@ export function calculateFirstPenalty(ml: number, target: number): number {
   return STAMINA_PENALTY.first.ml0; // 0%
 }
 
+// export function calculateFirstPenalty(ml: number): number {
+//   if (ml >= 500) return STAMINA_PENALTY.first.ml500Plus;
+//   if (ml >= 250) return STAMINA_PENALTY.first.ml250to499;
+//   if (ml >= 1) return STAMINA_PENALTY.first.ml1to249;
+//   return STAMINA_PENALTY.first.ml0;
+// }
+
 /**
  * Calculate penalty for regular interval (intervals 1-41)
  *

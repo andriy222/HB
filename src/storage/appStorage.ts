@@ -51,11 +51,9 @@ if (Platform.OS === "web") {
 
     const AsyncStorage = require("@react-native-async-storage/async-storage").default;
 
-    // In-memory cache for synchronous access
     const cache = new Map<string, string>();
     let initialized = false;
 
-    // Initialize cache asynchronously
     AsyncStorage.getAllKeys().then(async (keys: string[]) => {
       const items = await AsyncStorage.multiGet(keys);
       items.forEach(([key, value]: [string, string | null]) => {
