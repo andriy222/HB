@@ -11,6 +11,7 @@ import {
 import { useIntervalTimer } from "./useIntervalTimer";
 import { clearSession, loadSession, saveSession } from "../../utils/sessionPerssistance";
 import { Gender } from "../../utils/storage";
+import { updateBestRunIfBetter } from "../../storage/appStorage";
 
 /**
  * Main session management hook
@@ -127,6 +128,8 @@ export function useSession() {
   const end = useCallback(() => {
     if (!session) return;
 
+    const sessionDuration = Math.floor((Date.now() - session.startTime) / 1000 / 60); // minutes
+
     const completedSession = {
       ...session,
       endTime: Date.now(),
@@ -136,10 +139,17 @@ export function useSession() {
 
     setSession(completedSession);
 
+    // Save best run if better
+    const isNewBest = updateBestRunIfBetter(
+      session.totalDistance,
+      session.currentStamina,
+      sessionDuration
+    );
+
     // Clear from storage
     clearSession();
 
-    console.log(`🏁 Session complete | Distance: ${session.totalDistance.toFixed(2)}km`);
+    console.log(`🏁 Session complete | Distance: ${session.totalDistance.toFixed(2)}km${isNewBest ? " 🏆 NEW BEST!" : ""}`);
   }, [session]);
 
   /**
