@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import AuthBackground from "../../../UI/layout/backgrounds/AuthBackground";
 import { debugStorage, storage } from "../../../store/bleStore";
 import Podium from "../../../components/Podium/Podium";
@@ -14,12 +14,23 @@ import { SESSION_CONFIG } from "../../../constants/sessionConstants";
 import { textPresets } from "../../../theme";
 import { useSession } from "../../../hooks/useBleConnection/useSession";
 import { getBestRun } from "../../../storage/appStorage";
+import SessionResult from "../../../components/SessionResult/SessionResult";
 
 const { width } = Dimensions.get("window");
+
+interface SessionResultData {
+  distance: number;
+  stamina: number;
+  duration: number;
+  isNewBest: boolean;
+}
 
 const Main = () => {
   const [selectedGender, setSelectedGender] = useState<Gender>("male");
   const [bestRun, setBestRun] = useState<number>(0);
+  const [showResult, setShowResult] = useState(false);
+  const [sessionResult, setSessionResult] = useState<SessionResultData | null>(null);
+  const prevIsActiveRef = useRef<boolean>(false);
 
   const session = useSession();
 
@@ -38,6 +49,29 @@ const Main = () => {
     console.log(gender);
     setSelectedGender(gender);
   }, [storage]);
+
+  // Detect when session ends and show result modal
+  useEffect(() => {
+    // Session just ended (was active, now inactive)
+    if (prevIsActiveRef.current && !session.isActive && session.session?.isComplete) {
+      const currentBest = getBestRun();
+      const isNewBest = currentBest ? session.distance > bestRun : false;
+
+      setSessionResult({
+        distance: session.distance,
+        stamina: session.stamina,
+        duration: session.elapsedMinutes,
+        isNewBest,
+      });
+      setShowResult(true);
+
+      // Update best run display
+      if (isNewBest || !currentBest) {
+        setBestRun(session.distance);
+      }
+    }
+    prevIsActiveRef.current = session.isActive;
+  }, [session.isActive, session.session?.isComplete, session.distance, session.stamina, session.elapsedMinutes, bestRun]);
 
   // Get avatar animation based on stamina state
   const avatarAnimation: AvatarAnimation = useMemo(() => {
@@ -144,6 +178,16 @@ const Main = () => {
           )}
         </View>
       </View>
+      {sessionResult && (
+        <SessionResult
+          visible={showResult}
+          distance={sessionResult.distance}
+          stamina={sessionResult.stamina}
+          duration={sessionResult.duration}
+          isNewBest={sessionResult.isNewBest}
+          onClose={() => setShowResult(false)}
+        />
+      )}
     </AuthBackground>
   );
 };

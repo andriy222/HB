@@ -69,9 +69,13 @@ export function useSession() {
     const distance = calculateDistance(stamina, elapsed);
     const avatar = getAvatarState(stamina);
 
+    // Детальний лог для діагностики
+    const totalPenalty = intervalsRef.current.reduce((sum, i) => sum + Math.abs(i.penalty), 0);
     console.log(
-      `📊 Stamina update: ${stamina} (${intervalsRef.current.length} intervals, ` +
-      `penalties: [${intervalsRef.current.map(i => i.penalty).join(', ')}])`
+      `📊 Stamina: ${stamina.toFixed(1)} (300 - ${totalPenalty.toFixed(1)} penalty) | ` +
+      `${intervalsRef.current.length} intervals | ` +
+      `Distance: ${distance.toFixed(2)}km | ` +
+      `Penalties: [${intervalsRef.current.map(i => i.penalty.toFixed(1)).join(', ')}]`
     );
 
     setSession((prevSession) => {
@@ -155,10 +159,15 @@ export function useSession() {
       ? calculateFirstPenalty(interval.actualMl, interval.requiredMl)
       : calculateRegularPenalty(interval.requiredMl, interval.actualMl);
 
+    const oldTotalPenalty = intervalsRef.current.reduce((sum, i) => sum + Math.abs(i.penalty), 0) - Math.abs(interval.penalty) + Math.abs(oldPenalty);
+    const newTotalPenalty = intervalsRef.current.reduce((sum, i) => sum + Math.abs(i.penalty), 0);
+    const staminaChange = oldTotalPenalty - newTotalPenalty;
+
     console.log(
       `💧 +${ml}ml → Interval ${intervalIndex} | ` +
-      `${oldMl}ml→${interval.actualMl}ml/${interval.requiredMl}ml | ` +
-      `penalty: ${oldPenalty}→${interval.penalty}`
+      `${oldMl.toFixed(1)}→${interval.actualMl.toFixed(1)}/${interval.requiredMl.toFixed(1)}ml | ` +
+      `penalty: ${oldPenalty.toFixed(1)}→${interval.penalty.toFixed(1)} | ` +
+      `stamina change: ${staminaChange > 0 ? '+' : ''}${staminaChange.toFixed(1)}`
     );
 
     // Update session state
