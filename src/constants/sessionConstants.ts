@@ -29,21 +29,25 @@ export const SESSION_CONFIG = {
  * Stamina Penalty Configuration
  *
  * Penalties are applied based on hydration shortages to calculate stamina loss
+ *
+ * TESTING MODE: Penalties are scaled 4x to allow full stamina depletion in 6 minutes
+ * - Production (7h): max loss ~307 pts → capped to 300
+ * - Test (6min): max loss ~290 pts (allows testing all avatar states)
  */
 export const STAMINA_PENALTY = {
-  /** Penalties for first interval (requires 500ml) */
+  /** Penalties for first interval (requires 500ml in prod, 12ml in test) */
   first: {
-    /** No penalty if >= 500ml consumed */
+    /** No penalty if >= target consumed */
     ml500Plus: 0,
 
-    /** Moderate penalty if 250-499ml consumed */
-    ml250to499: -15,
+    /** Moderate penalty if 50-99% of target consumed (TESTING: -60 instead of -15) */
+    ml250to499: -60,
 
-    /** Heavy penalty if 1-249ml consumed */
-    ml1to249: -30,
+    /** Heavy penalty if 0.2-49% of target consumed (TESTING: -120 instead of -30) */
+    ml1to249: -120,
 
-    /** Maximum penalty if 0ml consumed */
-    ml0: -40,
+    /** Maximum penalty if 0ml consumed (TESTING: -160 instead of -40) */
+    ml0: -160,
   },
 
   /** Penalties for regular intervals (based on % shortage) */
@@ -51,17 +55,17 @@ export const STAMINA_PENALTY = {
     /** No penalty if target met */
     shortage0: 0,
 
-    /** Small penalty if 0-25% shortage */
-    shortage0to25: -2,
+    /** Small penalty if 0-25% shortage (TESTING: -8 instead of -2) */
+    shortage0to25: -8,
 
-    /** Medium penalty if 25-50% shortage */
-    shortage25to50: -4,
+    /** Medium penalty if 25-50% shortage (TESTING: -16 instead of -4) */
+    shortage25to50: -16,
 
-    /** Large penalty if 50-75% shortage */
-    shortage50to75: -6,
+    /** Large penalty if 50-75% shortage (TESTING: -24 instead of -6) */
+    shortage50to75: -24,
 
-    /** Maximum penalty if 75-100% shortage */
-    shortage75to100: -6.5,
+    /** Maximum penalty if 75-100% shortage (TESTING: -26 instead of -6.5) */
+    shortage75to100: -26,
   },
 } as const;
 
