@@ -185,6 +185,20 @@ export const textPresets = {
     fontWeight: typography.fontWeight.semiBold,
     lineHeight: 1.21,
     fontSize: typography.fontSize.md,
+  },
+
+  progressText: {
+    fontFamily: typography.fontFamily.sora.medium,
+    fontWeight: typography.fontWeight.medium,
+    fontSize: typography.fontSize["4.5xl"],
+    // lineHeight: "22px",
+    letterSpacing: typography.letterSpacing.normal,
+  },
+  bestRun: {
+    fontFamily: typography.fontFamily.sora.medium,
+    fontWeight: typography.fontWeight.medium,
+    fontSize: typography.fontSize.base,
+    letterSpacing: typography.letterSpacing.normal,
   }
 };
 
