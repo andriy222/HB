@@ -1,30 +1,44 @@
+<<<<<<< HEAD
+=======
+/**
+ * Centralized Connection Monitor
+ *
+ * Простий централізований реактивний моніторинг всіх підключень
+ * БЕЗ якості - просто чи є підключення чи ні
+ *
+ * Uses Zustand for state management
+ */
+>>>>>>> dea98cf6b74339d65687593ed7f3aeb226b3b44e
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useEffect } from 'react';
 import NetInfo from '@react-native-community/netinfo';
-import { Platform } from 'react-native';
-
-export interface ConnectionState {
-  ble: {
-    isConnected: boolean;
-    isReconnecting: boolean;
-  };
-  internet: {
-    isConnected: boolean;
-  };
-  coaster: {
-    isConnected: boolean;
-  };
-}
+import { useConnectionStore } from '../store/connectionStore';
 
 export interface ConnectionMonitorHook {
-  state: ConnectionState;
+  state: {
+    ble: {
+      isConnected: boolean;
+      isReconnecting: boolean;
+    };
+    internet: {
+      isConnected: boolean;
+    };
+    coaster: {
+      isConnected: boolean;
+    };
+  };
   hasAllConnections: boolean;
   missingConnections: string[];
+<<<<<<< HEAD
   canStartRace: boolean; 
+=======
+  canStartRace: boolean;
+>>>>>>> dea98cf6b74339d65687593ed7f3aeb226b3b44e
 }
 
 
 /**
+<<<<<<< HEAD
  * Глобальний стор для стану підключень
  * Використовується для синхронізації між різними хуками
  */
@@ -89,21 +103,34 @@ export const connectionStore = new ConnectionStateStore();
 /**
  * Хук що використовує глобальний стор
  * Це забезпечує синхронізацію стану між всіма компонентами
+=======
+ * Хук для моніторингу всіх підключень
+ * Використовує Zustand store для централізованого стану
+>>>>>>> dea98cf6b74339d65687593ed7f3aeb226b3b44e
  */
 export function useConnectionMonitor(): ConnectionMonitorHook {
-  const [state, setState] = useState<ConnectionState>(
-    connectionStore.getState()
-  );
+  const updateInternet = useConnectionStore((state) => state.updateInternet);
+  const ble = useConnectionStore((state) => state.ble);
+  const internet = useConnectionStore((state) => state.internet);
+  const coaster = useConnectionStore((state) => state.coaster);
+  const hasAllConnections = useConnectionStore((state) => state.hasAllConnections());
+  const missingConnections = useConnectionStore((state) => state.missingConnections());
+  const canStartRace = useConnectionStore((state) => state.canStartRace());
 
+  // Моніторинг інтернету
   useEffect(() => {
+<<<<<<< HEAD
     // Підписуємось на зміни
     const unsubscribe = connectionStore.subscribe((newState) => {
       setState(newState);
     });
 
     const unsubscribeNet = NetInfo.addEventListener((netState) => {
+=======
+    const unsubscribe = NetInfo.addEventListener((netState) => {
+>>>>>>> dea98cf6b74339d65687593ed7f3aeb226b3b44e
       const isOnline = netState.isConnected ?? false;
-      connectionStore.updateInternet(isOnline);
+      updateInternet(isOnline);
     });
 
     NetInfo.fetch().then((netState) => {
@@ -113,8 +140,8 @@ export function useConnectionMonitor(): ConnectionMonitorHook {
 
     return () => {
       unsubscribe();
-      unsubscribeNet();
     };
+<<<<<<< HEAD
   }, []);
 
   const hasAllConnections =
@@ -128,9 +155,16 @@ export function useConnectionMonitor(): ConnectionMonitorHook {
   if (!state.coaster.isConnected) missingConnections.push('coaster');
 
   const canStartRace = hasAllConnections;
+=======
+  }, [updateInternet]);
+>>>>>>> dea98cf6b74339d65687593ed7f3aeb226b3b44e
 
   return {
-    state,
+    state: {
+      ble,
+      internet,
+      coaster,
+    },
     hasAllConnections,
     missingConnections,
     canStartRace,
