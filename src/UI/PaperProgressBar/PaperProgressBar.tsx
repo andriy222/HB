@@ -6,8 +6,6 @@ const { width } = Dimensions.get("window");
 const PaperProgressBar = () => (
   <View style={styles.progressContainer}>
     <ProgressBar style={styles.progress} progress={1} color={colors.progress} />
-
-    <View></View>
   </View>
 );
 
