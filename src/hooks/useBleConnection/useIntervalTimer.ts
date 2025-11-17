@@ -166,7 +166,8 @@ export function useIntervalTimer(config: IntervalTimerConfig) {
     return () => {
       stop();
     };
-  }, [isActive, start, stop]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isActive]); // Only depend on isActive to prevent unnecessary restarts
 
   const getElapsedMinutes = useCallback((): number => {
     if (!sessionStartTimeRef.current) return 0;

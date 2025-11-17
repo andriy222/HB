@@ -11,10 +11,10 @@ export interface SessionConfig {
 
 export const SESSION_CONFIG: SessionConfig = {
   maxStamina: 300,
-  duration: 420,
+  duration: 6, // TESTING: 6 min instead of 420 (7 hours)
   maxDistance: 42.195,
-  intervalDuration: 10,
-  totalIntervals: 42,
+  intervalDuration: 1, // TESTING: 1 min instead of 10
+  totalIntervals: 6, // TESTING: 6 instead of 42
 };
 
 export interface IntervalData {
