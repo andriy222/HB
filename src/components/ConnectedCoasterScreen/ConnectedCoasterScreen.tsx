@@ -6,6 +6,7 @@ import { styles } from "./ConnectedCoasterScreen.styles";
 import { useBleScan } from "../../hooks/useScanDevices";
 import { usePermissions } from "../../hooks/usePermissions";
 import { useBleScanWithMock } from "../../hooks/MockBleProvider/useBleScanWithMock";
+import { logger } from "../../utils/logger";
 
 const coasterImage = require("../../../assets/coaster.png");
 
@@ -49,7 +50,7 @@ export default function ConnectCoasterScreen({
     // Зупинити сканування
     stopScan();
 
-    console.log("Found devices:", devices.length, devices);
+    logger.info("Found devices:", devices.length, devices);
 
     // Перевірити чи знайшли пристрій
     if (!devices || devices.length === 0) {
@@ -91,12 +92,12 @@ export default function ConnectCoasterScreen({
               throw new Error("Device ID is missing");
             }
             try {
-              console.log("Connecting to device:", firstDevice.id);
+              logger.info("Connecting to device:", firstDevice.id);
 
               const device = await connectToDevice(firstDevice.id);
 
               if (device) {
-                console.log("Connected successfully:", device.id);
+                logger.info("Connected successfully:", device.id);
                 setConnectionState("success");
 
                 setTimeout(() => {
@@ -106,7 +107,7 @@ export default function ConnectCoasterScreen({
                 throw new Error("Connection returned null");
               }
             } catch (error) {
-              console.error("Connection error:", error);
+              logger.error("Connection error:", error);
               Alert.alert(
                 "Connection Failed",
                 "Could not connect to the device. Please try again.",

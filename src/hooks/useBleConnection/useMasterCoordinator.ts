@@ -1,6 +1,7 @@
 import { Device } from "react-native-ble-plx";
 import { useCoasterSession } from "./useCoasterSession";
 import { useTimeSync } from "./useTimeSync";
+import { logger } from "../../utils/logger";
 
 /**
  * Master Coordinator Hook
@@ -60,14 +61,14 @@ export function useMasterCoordinator(config: MasterCoordinatorConfig) {
 
 
   const startRace = async () => {
-    console.log("🏁 Starting race flow...");
-    
+    logger.info("🏁 Starting race flow...");
+
     await coaster.requestLogs();
   };
 
 
   const manualSync = async () => {
-    console.log("🔄 Manual sync...");
+    logger.info("🔄 Manual sync...");
     await timeSync.manualSync();
     await coaster.sendGoalAndSync();
   };

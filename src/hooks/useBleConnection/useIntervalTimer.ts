@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { AppState, AppStateStatus } from "react-native";
 import { SESSION_CONFIG } from "./sessionTypes";
+import { logger } from "../../utils/logger";
 
 
 interface IntervalTimerConfig {
@@ -37,8 +38,8 @@ export function useIntervalTimer(config: IntervalTimerConfig) {
     
     if (actualInterval > currentIntervalRef.current) {
       const missedIntervals = actualInterval - currentIntervalRef.current;
-      
-      console.log(
+
+      logger.debug(
         `⏱️ Interval transition: ${currentIntervalRef.current} → ${actualInterval}` +
         (missedIntervals > 1 ? ` (skipped ${missedIntervals - 1})` : "")
       );
@@ -66,10 +67,10 @@ export function useIntervalTimer(config: IntervalTimerConfig) {
     
     const nextIntervalStart = 
       currentIntervalStart + SESSION_CONFIG.intervalDuration * 60 * 1000;
-    
+
     const timeUntilNext = nextIntervalStart - elapsed;
 
-    console.log(
+    logger.debug(
       `⏰ Next interval in ${Math.ceil(timeUntilNext / 1000)}s ` +
       `(interval ${currentIntervalRef.current + 1}/${SESSION_CONFIG.totalIntervals})`
     );
@@ -93,10 +94,10 @@ export function useIntervalTimer(config: IntervalTimerConfig) {
       return;
     }
 
-    console.log(`⏰ Session will complete in ${Math.ceil(remaining / (60 * 1000))}min`);
+    logger.debug(`⏰ Session will complete in ${Math.ceil(remaining / (60 * 1000))}min`);
 
     sessionTimerRef.current = setTimeout(() => {
-      console.log("🏁 7 hours elapsed → auto-completing session");
+      logger.info("🏁 7 hours elapsed → auto-completing session");
       onSessionComplete();
     }, remaining);
   }, [onSessionComplete]);
@@ -115,7 +116,7 @@ export function useIntervalTimer(config: IntervalTimerConfig) {
     scheduleSessionComplete();
 
     const elapsedSec = Math.floor(elapsed / 1000);
-    console.log(
+    logger.debug(
       `⏱️ Interval timer started${startTime ? ` (restored, ${elapsedSec}s elapsed, interval ${currentIntervalRef.current})` : " (new)"}`
     );
   }, [scheduleNextInterval, scheduleSessionComplete]);
@@ -132,7 +133,7 @@ export function useIntervalTimer(config: IntervalTimerConfig) {
       sessionTimerRef.current = null;
     }
 
-    console.log("⏱️ Interval timer stopped");
+    logger.debug("⏱️ Interval timer stopped");
   }, []);
 
 
@@ -143,7 +144,7 @@ export function useIntervalTimer(config: IntervalTimerConfig) {
 
     scheduleNextInterval();
 
-    console.log("⏱️ Interval timer resumed from background");
+    logger.debug("⏱️ Interval timer resumed from background");
   }, [checkIntervalProgress, scheduleNextInterval]);
 
 
@@ -199,7 +200,7 @@ export function useIntervalTimer(config: IntervalTimerConfig) {
     sessionStartTimeRef.current = null;
     currentIntervalRef.current = 0;
     lastIntervalCheckRef.current = 0;
-    console.log("⏱️ Interval timer reset");
+    logger.debug("⏱️ Interval timer reset");
   }, [stop]);
 
   const getStartTime = useCallback((): number | null => {

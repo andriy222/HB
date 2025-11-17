@@ -8,6 +8,7 @@ import {
 } from "../utils/storage";
 import { BLE_DEVICE, BLE_TIMEOUTS } from "../constants/bleConstants";
 import { useConnectionStore } from "../store/connectionStore";
+import { logger } from "../utils/logger";
 
 export const useBleScan = () => {
   const [devices, setDevices] = useState<Device[]>([]);
@@ -99,7 +100,7 @@ export const useBleScan = () => {
         userInitiatedDisconnectRef.current = true;
         await connectedDevice.cancelConnection();
       } catch (e) {
-        console.warn("Failed to disconnect:", e);
+        logger.warn("Failed to disconnect:", e);
       }
     }
     setConnectedDevice(null);
@@ -123,12 +124,12 @@ export const useBleScan = () => {
   const scheduleReconnect = useCallback((deviceId: string, attemptNumber: number) => {
     // Double-check reconnect is still active
     if (!reconnectActiveRef.current) {
-      console.log('🔄 Reconnect cancelled - not active');
+      logger.debug('🔄 Reconnect cancelled - not active');
       return;
     }
 
     if (attemptNumber >= BLE_TIMEOUTS.MAX_RECONNECT_ATTEMPTS) {
-      console.log(`⚠️ Max reconnect attempts (${BLE_TIMEOUTS.MAX_RECONNECT_ATTEMPTS}) reached`);
+      logger.warn(`⚠️ Max reconnect attempts (${BLE_TIMEOUTS.MAX_RECONNECT_ATTEMPTS}) reached`);
       setIsReconnecting(false);
       reconnectActiveRef.current = false;
       return;
@@ -139,7 +140,7 @@ export const useBleScan = () => {
       BLE_TIMEOUTS.RECONNECT_INITIAL_DELAY * Math.pow(2, attemptNumber)
     );
 
-    console.log(`🔄 Scheduling reconnect attempt ${attemptNumber + 1} in ${delay}ms`);
+    logger.debug(`🔄 Scheduling reconnect attempt ${attemptNumber + 1} in ${delay}ms`);
 
     // Clear any existing timer before creating a new one
     if (reconnectTimerRef.current) {
@@ -150,11 +151,11 @@ export const useBleScan = () => {
     reconnectTimerRef.current = setTimeout(async () => {
       // Check again before attempting to connect
       if (!reconnectActiveRef.current) {
-        console.log('🔄 Reconnect cancelled - not active anymore');
+        logger.debug('🔄 Reconnect cancelled - not active anymore');
         return;
       }
 
-      console.log(`🔄 Reconnect attempt ${attemptNumber + 1}/${BLE_TIMEOUTS.MAX_RECONNECT_ATTEMPTS}`);
+      logger.debug(`🔄 Reconnect attempt ${attemptNumber + 1}/${BLE_TIMEOUTS.MAX_RECONNECT_ATTEMPTS}`);
       const device = await connectToDevice(deviceId);
 
       // Only schedule next attempt if still active and connection failed
@@ -163,7 +164,7 @@ export const useBleScan = () => {
         scheduleReconnect(deviceId, attemptNumber + 1);
       } else if (device) {
         // Connection successful - clear reconnect state
-        console.log('✅ Reconnect successful');
+        logger.info('✅ Reconnect successful');
         reconnectActiveRef.current = false;
         setIsReconnecting(false);
         autoReconnectAttemptsRef.current = 0;
@@ -249,14 +250,14 @@ export const useBleScan = () => {
 
             // Auto-reconnect on unexpected drops (e.g., <420 logs/no SYNC)
             if (!userInitiatedDisconnectRef.current) {
-              console.log("🔌 Unexpected disconnect, starting reconnect sequence");
+              logger.info("🔌 Unexpected disconnect, starting reconnect sequence");
               autoReconnectAttemptsRef.current = 0;
               setIsReconnecting(true);
               reconnectActiveRef.current = true;
               scheduleReconnect(deviceId, 0);
             } else {
               // User-initiated disconnect - reset all reconnect state
-              console.log("🔌 User-initiated disconnect");
+              logger.debug("🔌 User-initiated disconnect");
               autoReconnectAttemptsRef.current = 0;
               setIsReconnecting(false);
               reconnectActiveRef.current = false;

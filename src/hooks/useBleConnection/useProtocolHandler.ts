@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { BLE_TIMEOUTS } from "../../constants/bleConstants";
+import { logger } from "../../utils/logger";
 
 /**
  * Protocol Response Handler
@@ -41,7 +42,7 @@ export function useProtocolHandler(callbacks?: ProtocolHandlerCallbacks) {
     const trimmed = line.trim().toUpperCase();
 
     if (trimmed.startsWith("SDT")) {
-      console.log("📊 SDT: Data transfer starting");
+      logger.debug("📊 SDT: Data transfer starting");
       setState("receiving");
       callbacks?.onDataStart?.();
       return true;
@@ -56,7 +57,7 @@ export function useProtocolHandler(callbacks?: ProtocolHandlerCallbacks) {
       }
       idleTimerRef.current = setTimeout(() => {
         if (state === "receiving") {
-          console.log("⏱️ DL stream idle → auto-completing");
+          logger.debug("⏱️ DL stream idle → auto-completing");
           handleProtocolLine("END");
         }
       }, BLE_TIMEOUTS.PROTOCOL_IDLE_TIMEOUT);
@@ -65,7 +66,7 @@ export function useProtocolHandler(callbacks?: ProtocolHandlerCallbacks) {
     }
 
     if (trimmed.startsWith("END")) {
-      console.log(`📊 END: ${dlCountRef.current} logs received`);
+      logger.info(`📊 END: ${dlCountRef.current} logs received`);
       setState("idle");
       
       if (idleTimerRef.current) {
@@ -78,27 +79,27 @@ export function useProtocolHandler(callbacks?: ProtocolHandlerCallbacks) {
     }
     if (trimmed === "ACK") {
       if (awaitingGoalAckRef.current) {
-        console.log("✅ ACK: GOAL confirmed");
+        logger.info("✅ ACK: GOAL confirmed");
         awaitingGoalAckRef.current = false;
         callbacks?.onGoalAck?.();
         return true;
       }
 
       if (awaitingSyncAckRef.current) {
-        console.log("✅ ACK: SYNC confirmed");
+        logger.info("✅ ACK: SYNC confirmed");
         awaitingSyncAckRef.current = false;
         setState("complete");
         callbacks?.onSyncAck?.();
         return true;
       }
 
-      console.log("ℹ️ ACK: (no pending command)");
+      logger.info("ℹ️ ACK: (no pending command)");
       return true;
     }
 
     if (trimmed.startsWith("ERR")) {
       const message = line.substring(3).trim() || "Unknown error";
-      console.error(`❌ ERR: ${message}`);
+      logger.error(`❌ ERR: ${message}`);
       setState("error");
       setLastError(message);
       callbacks?.onError?.(message);
@@ -110,13 +111,13 @@ export function useProtocolHandler(callbacks?: ProtocolHandlerCallbacks) {
 
   const expectGoalAck = useCallback(() => {
     awaitingGoalAckRef.current = true;
-    console.log("⏳ Waiting for GOAL ACK...");
+    logger.debug("⏳ Waiting for GOAL ACK...");
   }, []);
 
   const expectSyncAck = useCallback(() => {
     awaitingSyncAckRef.current = true;
     setState("syncing");
-    console.log("⏳ Waiting for SYNC ACK...");
+    logger.debug("⏳ Waiting for SYNC ACK...");
   }, []);
 
 
@@ -125,7 +126,7 @@ export function useProtocolHandler(callbacks?: ProtocolHandlerCallbacks) {
     setState("requesting");
     dlCountRef.current = 0;
     setDlCount(0);
-    console.log("📥 Starting data transfer...");
+    logger.debug("📥 Starting data transfer...");
   }, []);
 
 

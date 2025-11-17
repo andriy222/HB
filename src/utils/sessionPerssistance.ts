@@ -1,5 +1,6 @@
 import { Platform } from "react-native";
 import { SessionState, SESSION_CONFIG } from "../hooks/useBleConnection/sessionTypes";
+import { logger } from "./logger";
 /**
  * Session Persistence
  * 
@@ -52,9 +53,9 @@ export async function saveSession(session: SessionState): Promise<void> {
     await setItemAsync(LAST_UPDATE_KEY, String(Date.now()));
 
     const elapsed = Math.floor((Date.now() - session.startTime) / 1000);
-    console.log(`💾 Session saved (${elapsed}s elapsed, stamina: ${session.currentStamina})`);
+    logger.debug(`💾 Session saved (${elapsed}s elapsed, stamina: ${session.currentStamina})`);
   } catch (e) {
-    console.error("Failed to save session:", e);
+    logger.error("Failed to save session:", e);
   }
 }
 
@@ -71,23 +72,23 @@ export async function loadSession(): Promise<SessionState | null> {
     const maxAge = (SESSION_CONFIG.duration + 60) * 60 * 1000; // Duration + 1 hour grace period
 
     if (age > maxAge) {
-      console.log("💾 Session too old, clearing");
+      logger.debug("💾 Session too old, clearing");
       await clearSession();
       return null;
     }
 
     const duration = SESSION_CONFIG.duration * 60 * 1000;
     if (session.isActive && (now - session.startTime) >= duration) {
-      console.log(`💾 Session exceeded ${SESSION_CONFIG.duration}min, marking complete`);
+      logger.info(`💾 Session exceeded ${SESSION_CONFIG.duration}min, marking complete`);
       session.isActive = false;
       session.isComplete = true;
       session.endTime = session.startTime + duration;
     }
 
-    console.log("💾 Session loaded");
+    logger.debug("💾 Session loaded");
     return session;
   } catch (e) {
-    console.error("Failed to load session:", e);
+    logger.error("Failed to load session:", e);
     return null;
   }
 }
@@ -96,9 +97,9 @@ export async function clearSession(): Promise<void> {
   try {
     await setItemAsync(SESSION_KEY, null);
     await setItemAsync(LAST_UPDATE_KEY, null);
-    console.log("💾 Session cleared");
+    logger.info("💾 Session cleared");
   } catch (e) {
-    console.error("Failed to clear session:", e);
+    logger.error("Failed to clear session:", e);
   }
 }
 

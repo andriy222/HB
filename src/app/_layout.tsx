@@ -18,6 +18,7 @@ import {
 import * as ExpoSplashScreen from "expo-splash-screen";
 import { colors, fontConfig } from "../theme";
 import SplashScreen from "../UI/layout/SplashScreen/SplashScreen";
+import { logger } from "../utils/logger";
 
 const theme = {
   ...MD3LightTheme,
@@ -54,7 +55,7 @@ export default function RootLayout() {
           await ExpoSplashScreen.hideAsync();
         }
       } catch (e) {
-        console.warn(e);
+        logger.warn(e);
       }
     }
 

@@ -15,6 +15,7 @@ import {
   Characteristic,
   Subscription,
 } from "react-native-ble-plx";
+import { logger } from "../../utils/logger";
 
 // ---- base64 helpers (RN-safe, no Buffer dependency) ----
 const base64abc =
@@ -280,7 +281,7 @@ export default function ConnectedDevice({
         return { ...prev, [serviceUUID]: next };
       });
     } catch (e) {
-      console.warn("Read failed:", e);
+      logger.warn("Read failed:", e);
     }
   };
 
@@ -297,7 +298,7 @@ export default function ConnectedDevice({
       charUUID,
       (error, c) => {
         if (error) {
-          console.warn("Notify error:", error);
+          logger.warn("Notify error:", error);
           return;
         }
         if (c?.value != null) {
@@ -764,7 +765,7 @@ export default function ConnectedDevice({
           asciiToB64(ascii)
         );
       } catch (e2) {
-        console.warn("Write failed:", e2);
+        logger.warn("Write failed:", e2);
         log("Write failed", "err");
       }
     }

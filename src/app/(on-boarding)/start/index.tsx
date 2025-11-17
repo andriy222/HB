@@ -13,6 +13,7 @@ import { useRouter } from "expo-router";
 import { useBleStore } from "../../../store/bleStore";
 import { useBleScan } from "../../../hooks/useScanDevices";
 import { useBleScanWithMock } from "../../../hooks/MockBleProvider/useBleScanWithMock";
+import { logger } from "../../../utils/logger";
 
 const { height } = Dimensions.get("window");
 
@@ -23,11 +24,11 @@ const Start = () => {
   const [selectedGender, setSelectedGender] = useState<Gender>("male");
   const [modalVisible, setModalVisible] = useState(false);
   // const bleScanResult = useBleScan();
-  // console.log("🔧 useBleScan result:", bleScanResult);
-  // console.log("🔧 Keys:", Object.keys(bleScanResult || {}));
+  // logger.debug("🔧 useBleScan result:", bleScanResult);
+  // logger.debug("🔧 Keys:", Object.keys(bleScanResult || {}));
   useEffect(() => {
-    console.log("🔗 linkUp:", linkUp);
-    console.log(
+    logger.debug("🔗 linkUp:", linkUp);
+    logger.debug(
       "📱 connectedDevice:",
       connectedDevice?.name,
       connectedDevice?.id
@@ -35,23 +36,23 @@ const Start = () => {
   }, [linkUp, connectedDevice]);
 
   function handleStart() {
-    console.log("▶️ Start button pressed");
-    console.log("🔗 Current linkUp:", linkUp);
-    console.log("📱 Current device:", connectedDevice?.name);
+    logger.debug("▶️ Start button pressed");
+    logger.debug("🔗 Current linkUp:", linkUp);
+    logger.debug("📱 Current device:", connectedDevice?.name);
 
     if (linkUp && connectedDevice) {
-      console.log("✅ Connected, going to main");
+      logger.info("✅ Connected, going to main");
       router.push("/(main)/race");
     } else {
-      console.log("⚠️ Not connected, showing modal");
+      logger.warn("⚠️ Not connected, showing modal");
       setModalVisible(true);
     }
   }
 
   const handleComplete = () => {
-    console.log("🎉 Connection complete!");
-    console.log("🔗 linkUp after complete:", linkUp);
-    console.log("📱 device after complete:", connectedDevice?.name);
+    logger.debug("🎉 Connection complete!");
+    logger.debug("🔗 linkUp after complete:", linkUp);
+    logger.debug("📱 device after complete:", connectedDevice?.name);
 
     setOnboardingComplete();
 
@@ -105,7 +106,7 @@ const Start = () => {
       <ConnectionModal
         visible={modalVisible}
         onDismiss={() => {
-          console.log("❌ Modal dismissed");
+          logger.debug("❌ Modal dismissed");
           setModalVisible(false);
         }}
         onComplete={handleComplete}

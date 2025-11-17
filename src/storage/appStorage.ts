@@ -1,4 +1,5 @@
 import { Platform } from "react-native";
+import { logger } from "../utils/logger";
 
 interface Storage {
   getString: (key: string) => string | undefined;
@@ -45,9 +46,9 @@ if (Platform.OS === "web") {
       clearAll: () => mmkv.clearAll(),
     };
 
-    console.log("💾 Using MMKV storage");
+    logger.info("💾 Using MMKV storage");
   } catch (e) {
-    console.warn("⚠️ MMKV not available, falling back to AsyncStorage");
+    logger.warn("⚠️ MMKV not available, falling back to AsyncStorage");
 
     const AsyncStorage = require("@react-native-async-storage/async-storage").default;
 
@@ -62,13 +63,13 @@ if (Platform.OS === "web") {
         }
       });
       initialized = true;
-      console.log("💾 AsyncStorage cache initialized");
+      logger.info("💾 AsyncStorage cache initialized");
     });
 
     storage = {
       getString: (key: string) => {
         if (!initialized) {
-          console.warn("⚠️ Storage not initialized yet, reading from AsyncStorage");
+          logger.warn("⚠️ Storage not initialized yet, reading from AsyncStorage");
         }
         return cache.get(key);
       },
@@ -76,19 +77,19 @@ if (Platform.OS === "web") {
         const strValue = String(value);
         cache.set(key, strValue);
         AsyncStorage.setItem(key, strValue).catch((err: Error) => {
-          console.error("Failed to write to AsyncStorage:", err);
+          logger.error("Failed to write to AsyncStorage:", err);
         });
       },
       delete: (key: string) => {
         cache.delete(key);
         AsyncStorage.removeItem(key).catch((err: Error) => {
-          console.error("Failed to delete from AsyncStorage:", err);
+          logger.error("Failed to delete from AsyncStorage:", err);
         });
       },
       clearAll: () => {
         cache.clear();
         AsyncStorage.clear().catch((err:Error) => {
-          console.error("Failed to clear AsyncStorage:", err);
+          logger.error("Failed to clear AsyncStorage:", err);
         });
       },
     };
@@ -175,7 +176,7 @@ export function saveBestRun(distance: number, stamina: number, sessionDuration: 
     sessionDuration,
   };
   mmkvStorage.set(STORAGE_KEYS.BEST_RUN, bestRun);
-  console.log(`💾 Best run saved: ${distance.toFixed(2)} km`);
+  logger.info(`💾 Best run saved: ${distance.toFixed(2)} km`);
 }
 
 export function getBestRun(): BestRun | null {
