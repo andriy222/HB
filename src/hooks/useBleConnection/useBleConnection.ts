@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { Device } from "react-native-ble-plx";
 import { base64Decode, base64Encode } from "../../utils/base64";
 import { captureBLEError, trackBLEEvent } from "../../utils/sentry";
+import { logger } from "../../utils/logger";
+import { REGEX_PATTERNS, VALIDATION, PROTOCOL_COMMANDS, BLE_ERROR_KEYWORDS } from "../../constants/appConstants";
 
 interface BLEConfig {
   targetService: string;
@@ -39,7 +41,7 @@ export function useBLEConnection(
     try {
       return base64Decode(b64);
     } catch (e) {
-      console.warn("Failed to decode base64:", e);
+      logger.warn("Failed to decode base64", e);
       return "";
     }
   }, []);
@@ -48,22 +50,22 @@ export function useBLEConnection(
    * Parse DL line: "DL <index> <ml>"
    */
   const parseDLLine = useCallback((line: string): ParsedDLLine | null => {
-    if (!line.startsWith("DL")) return null;
+    if (!line.startsWith(PROTOCOL_COMMANDS.DL)) return null;
 
-    const indexMatch = /^DL\s+(\d+)/.exec(line);
+    const indexMatch = REGEX_PATTERNS.DL_INDEX.exec(line);
     if (!indexMatch) return null;
-    
+
     const index = parseInt(indexMatch[1], 10);
     if (!Number.isFinite(index)) return null;
 
     let ml = NaN;
-    const afterIndex = /^DL\s+\d+\s+([0-9]+(?:\.[0-9]+)?)/.exec(line);
+    const afterIndex = REGEX_PATTERNS.DL_VALUE.exec(line);
     if (afterIndex) {
       ml = parseFloat(afterIndex[1]);
     }
-    
+
     if (!Number.isFinite(ml)) {
-      const lastNumber = /(\d+(?:\.\d+)?)\s*(?:ml)?\s*$/i.exec(line);
+      const lastNumber = REGEX_PATTERNS.DL_LAST_NUMBER.exec(line);
       if (lastNumber) {
         ml = parseFloat(lastNumber[1]);
       }
@@ -75,18 +77,20 @@ export function useBLEConnection(
   }, []);
 
   const parseDEVLine = useCallback((line: string): number | null => {
-    if (!line.startsWith("DEV")) return null;
-    const match = /^DEV\s+(\d{1,3})/.exec(line);
+    if (!line.startsWith(PROTOCOL_COMMANDS.DEV)) return null;
+    const match = REGEX_PATTERNS.DEV_BATTERY.exec(line);
     if (!match) return null;
     const level = parseInt(match[1], 10);
-    return Number.isFinite(level) ? Math.max(0, Math.min(100, level)) : null;
+    return Number.isFinite(level)
+      ? Math.max(VALIDATION.BATTERY_MIN, Math.min(VALIDATION.BATTERY_MAX, level))
+      : null;
   }, []);
 
   const handleLine = useCallback((line: string) => {
     const trimmed = line.trim();
     if (!trimmed) return;
 
-    console.log("📥 BLE:", trimmed);
+    logger.ble(`RX: ${trimmed}`);
 
     onLineReceived?.(trimmed);
 
@@ -115,7 +119,7 @@ export function useBLEConnection(
           // Remove subscription on all platforms to prevent memory leak
           subscriptionRef.current.remove();
         } catch (error) {
-          console.warn("Failed to remove BLE subscription:", error);
+          logger.warn("Failed to remove BLE subscription", error);
         }
         subscriptionRef.current = null;
       }
@@ -128,7 +132,7 @@ export function useBLEConnection(
         rxCharacteristic,
         (error, characteristic) => {
           if (error) {
-            console.warn("BLE RX error:", error);
+            logger.warn("BLE RX error", error);
             captureBLEError("subscribe", error, device.id);
             return;
           }
@@ -139,7 +143,7 @@ export function useBLEConnection(
           if (!chunk) return;
 
           lineBufferRef.current += chunk;
-          const lines = lineBufferRef.current.split(/\r\n|\n|\r/);
+          const lines = lineBufferRef.current.split(REGEX_PATTERNS.LINE_SEPARATORS);
           lineBufferRef.current = lines.pop() || "";
 
           lines.forEach(handleLine);
@@ -150,9 +154,9 @@ export function useBLEConnection(
       setIsReady(true);
 
       trackBLEEvent("rx_subscribed", { deviceId: device.id });
-      console.log("✅ BLE RX subscribed");
+      logger.ble("RX subscribed successfully");
     } catch (e) {
-      console.error("Subscribe failed:", e);
+      logger.error("Subscribe failed", e);
       captureBLEError("subscribe", e as Error, device?.id);
       setIsReady(false);
     }
@@ -160,7 +164,7 @@ export function useBLEConnection(
 
   const sendCommand = useCallback(async (command: string): Promise<boolean> => {
     if (!device || !isConnected) {
-      console.warn("Cannot send: not connected");
+      logger.warn("Cannot send: not connected");
       return false;
     }
 
@@ -174,25 +178,25 @@ export function useBLEConnection(
           txCharacteristic,
           base64
         );
-        console.log("📤 BLE TX (with response):", command.trim());
+        logger.ble(`TX (with response): ${command.trim()}`);
         return true;
       } catch (e1) {
         // Only fallback to without-response if characteristic doesn't support response
         // Check if error is about unsupported operation
         const error = e1 as Error;
         const isUnsupportedOperation =
-          error?.message?.includes('without response') ||
-          error?.message?.includes('not supported') ||
-          error?.message?.includes('GATT');
+          error?.message?.includes(BLE_ERROR_KEYWORDS.WITHOUT_RESPONSE) ||
+          error?.message?.includes(BLE_ERROR_KEYWORDS.NOT_SUPPORTED) ||
+          error?.message?.includes(BLE_ERROR_KEYWORDS.GATT);
 
         if (isUnsupportedOperation) {
-          console.log("⚠️ Response not supported, trying without response");
+          logger.warn("Response not supported, trying without response");
           await device.writeCharacteristicWithoutResponseForService(
             targetService,
             txCharacteristic,
             base64
           );
-          console.log("📤 BLE TX (without response):", command.trim());
+          logger.ble(`TX (without response): ${command.trim()}`);
           return true;
         } else {
           // For other errors (disconnect, timeout, etc) - throw to outer catch
@@ -200,7 +204,7 @@ export function useBLEConnection(
         }
       }
     } catch (e) {
-      console.error("Send failed:", e);
+      logger.error("Send failed", e);
       captureBLEError("send_command", e as Error, device?.id);
       return false;
     }
@@ -217,7 +221,7 @@ export function useBLEConnection(
           // Remove subscription on all platforms to prevent memory leak
           subscriptionRef.current.remove();
         } catch (error) {
-          console.warn("Failed to remove BLE subscription:", error);
+          logger.warn("Failed to remove BLE subscription", error);
         }
         subscriptionRef.current = null;
       }
