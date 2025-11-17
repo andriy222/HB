@@ -18,15 +18,15 @@ export default function OnBoarding() {
   const [selectedGender, setGender] = useState<Gender>("male");
 
   useEffect(() => {
-    getSelectedGender().then(setGender);
+    getSelectedGender();
   }, []);
 
   const handleGenderChange = (gender: Gender) => {
     setGender(gender);
   };
 
-  const handleContinue = async () => {
-    await setSelectedGender(selectedGender);
+  const handleContinue = () => {
+    setSelectedGender(selectedGender);
     router.push("/(on-boarding)/start");
   };
 

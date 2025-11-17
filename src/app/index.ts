@@ -1,29 +1,29 @@
 import { useEffect } from "react";
-import { appStorage } from "../storage/appStorage";
 import { useRouter } from "expo-router";
+import { useOnboardingStatus } from "../hooks/useOnboardingStatus/useOnboardingStatus";
 export default function Index() {
   const router = useRouter()
-
+  const { nextRoute } = useOnboardingStatus();
   useEffect(() => {
     checkInitialRoute();
   }, []);
 
   const checkInitialRoute = async () => {
     try {
-      const isFirstTime = await appStorage.isFirstTime();
-
-      //   const token = await authStorage.getToken();
-
+      const isFirstTime =  true
       if (isFirstTime) {
-        await appStorage.setNotFirstTime();
-        router.replace("");
-      } else {
-        // router.replace("/(auth)/login");
+        console.log("👋 First time, going to /welcome");
         router.replace("/welcome");
+      } else {
+        console.log("🏠 Redirecting to", nextRoute);
+        router.replace(nextRoute);
       }
     } catch (error) {
-      console.error("Error checking initial route:", error);
-      router.replace("/welcome")
+      console.error("Error checking route:", error);
+      router.replace("/welcome");
     }
   };
+
+  return null;
 }
+

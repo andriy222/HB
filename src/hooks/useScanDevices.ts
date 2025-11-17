@@ -21,7 +21,6 @@ export const useBleScan = () => {
   const [connectError, setConnectError] = useState<string | null>(null);
   const [isReconnecting, setIsReconnecting] = useState(false);
 
-  // Permission handling lives in UI (Connection.tsx)
   const managerRef = useRef<BleManager | null>(null);
   const disconnectSubRef = useRef<Subscription | null>(null);
   const foundTargetRef = useRef(false);
@@ -30,18 +29,15 @@ export const useBleScan = () => {
   const reconnectTimerRef = useRef<any>(null);
   const reconnectActiveRef = useRef(false);
 
-  // Target device/service identifiers
   const TARGET_NAME = "Hybit NeuraFlow";
-  const TARGET_SERVICE = "6e400001-b5a3-f393-e0a9-e50e24dcca9e"; // Nordic UART Service
+  const TARGET_SERVICE = "6e400001-b5a3-f393-e0a9-e50e24dcca9e"; 
 
   useEffect(() => {
     managerRef.current = new BleManager();
     return () => {
       disconnectSubRef.current?.remove();
       if (reconnectTimerRef.current) {
-        try {
-          clearTimeout(reconnectTimerRef.current);
-        } catch {}
+        try { clearTimeout(reconnectTimerRef.current); } catch {}
         reconnectTimerRef.current = null;
       }
       managerRef.current?.destroy();
@@ -50,12 +46,9 @@ export const useBleScan = () => {
 
   const startScan = useCallback(() => {
     if (!managerRef.current) return;
-    // Stop any auto-reconnect loop when user starts an active scan
     reconnectActiveRef.current = false;
     if (reconnectTimerRef.current) {
-      try {
-        clearTimeout(reconnectTimerRef.current);
-      } catch {}
+      try { clearTimeout(reconnectTimerRef.current); } catch {}
       reconnectTimerRef.current = null;
     }
     setDevices([]);
@@ -109,7 +102,7 @@ export const useBleScan = () => {
     }
     setConnectedDevice(null);
     setLinkUp(false);
-    // User initiated disconnect – don't auto-reconnect next launch
+    // User initiated disconnect â€“ don't auto-reconnect next launch
     clearLastDeviceId();
     autoReconnectAttemptsRef.current = 0;
     userInitiatedDisconnectRef.current = false;
@@ -117,9 +110,7 @@ export const useBleScan = () => {
     // Stop any ongoing reconnect timers
     reconnectActiveRef.current = false;
     if (reconnectTimerRef.current) {
-      try {
-        clearTimeout(reconnectTimerRef.current);
-      } catch {}
+      try { clearTimeout(reconnectTimerRef.current); } catch {}
       reconnectTimerRef.current = null;
     }
   }, [connectedDevice]);
@@ -175,9 +166,7 @@ export const useBleScan = () => {
           setConnectError(
             `Required service ${TARGET_SERVICE} not found on device`
           );
-          try {
-            await ready.cancelConnection();
-          } catch {}
+          try { await ready.cancelConnection(); } catch {}
           return null;
         }
 
@@ -187,13 +176,11 @@ export const useBleScan = () => {
         autoReconnectAttemptsRef.current = 0; // reset on success
         reconnectActiveRef.current = false;
         if (reconnectTimerRef.current) {
-          try {
-            clearTimeout(reconnectTimerRef.current);
-          } catch {}
+          try { clearTimeout(reconnectTimerRef.current); } catch {}
           reconnectTimerRef.current = null;
         }
         // Persist last connected device id for auto-reconnect
-        setLastDeviceId(deviceId).catch(() => {});
+        setLastDeviceId(deviceId);
 
         disconnectSubRef.current?.remove();
         disconnectSubRef.current = managerRef.current.onDeviceDisconnected(
@@ -213,9 +200,7 @@ export const useBleScan = () => {
                 reconnectActiveRef.current = true;
                 const delay = Math.min(30000, 1000 * Math.pow(2, tries));
                 if (reconnectTimerRef.current) {
-                  try {
-                    clearTimeout(reconnectTimerRef.current);
-                  } catch {}
+                  try { clearTimeout(reconnectTimerRef.current); } catch {}
                 }
                 reconnectTimerRef.current = setTimeout(() => {
                   if (!reconnectActiveRef.current) return;
@@ -223,18 +208,12 @@ export const useBleScan = () => {
                     if (!d && reconnectActiveRef.current) {
                       // schedule another try
                       const next = autoReconnectAttemptsRef.current;
-                      const nextDelay = Math.min(
-                        30000,
-                        1000 * Math.pow(2, next)
-                      );
+                      const nextDelay = Math.min(30000, 1000 * Math.pow(2, next));
                       if (reconnectTimerRef.current) {
-                        try {
-                          clearTimeout(reconnectTimerRef.current);
-                        } catch {}
+                        try { clearTimeout(reconnectTimerRef.current); } catch {}
                       }
                       reconnectTimerRef.current = setTimeout(() => {
-                        if (reconnectActiveRef.current)
-                          connectToDevice(deviceId);
+                        if (reconnectActiveRef.current) connectToDevice(deviceId);
                       }, nextDelay);
                     }
                   });
@@ -248,9 +227,7 @@ export const useBleScan = () => {
               setIsReconnecting(false);
               reconnectActiveRef.current = false;
               if (reconnectTimerRef.current) {
-                try {
-                  clearTimeout(reconnectTimerRef.current);
-                } catch {}
+                try { clearTimeout(reconnectTimerRef.current); } catch {}
                 reconnectTimerRef.current = null;
               }
             }
@@ -272,15 +249,13 @@ export const useBleScan = () => {
 
   // Auto-reconnect to last device if available
   useEffect(() => {
-    let cancelled = false;
-    const tryReconnect = async () => {
-      const lastId = await getLastDeviceId();
-      if (!lastId || cancelled) return;
-      await connectToDevice(lastId);
+    const tryReconnect = () => {
+      const lastId = getLastDeviceId();
+      if (!lastId) return;
+      connectToDevice(lastId);
     };
     const t = setTimeout(tryReconnect, 100);
     return () => {
-      cancelled = true;
       clearTimeout(t);
     };
   }, [connectToDevice]);

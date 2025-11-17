@@ -1,21 +1,35 @@
 import { View, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
-
+import { useEffect } from "react";
 import AuthBackground from "../../UI/layout/backgrounds/AuthBackground";
 import PaperButton from "../../UI/PaperButton/PaperButton";
+import { useOnboardingStatus } from "../../hooks/useOnboardingStatus/useOnboardingStatus";
 
 export default function Welcome() {
   const router = useRouter();
+  const { isComplete, nextRoute } = useOnboardingStatus();
+
+  useEffect(() => {
+    if (isComplete) {
+      console.log("✅ Onboarding complete, redirecting to", nextRoute);
+      router.replace(nextRoute);
+    }
+  }, [isComplete, nextRoute]);
 
   const handleContinue = () => {
-    router.push("/(on-boarding)/choose");
+    console.log("▶️ Continue pressed, going to", nextRoute);
+    router.push(nextRoute);
+  };
+  const handleDevTools = () => {
+    router.push("/(main)/dev-tools");
   };
 
   return (
     <AuthBackground isSecondary={true}>
       <View style={styles.container}>
-        <PaperButton onPress={handleContinue} children="Continue" />
+        <PaperButton onPress={handleContinue}>Continue</PaperButton>
       </View>
+      <PaperButton onPress={handleDevTools}>Continue</PaperButton>
     </AuthBackground>
   );
 }

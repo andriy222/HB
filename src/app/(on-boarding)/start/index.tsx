@@ -12,16 +12,19 @@ import ConnectionModal from "../../../UI/ConnectionModal/ConnectionModal";
 import { useRouter } from "expo-router";
 import { useBleStore } from "../../../store/bleStore";
 import { useBleScan } from "../../../hooks/useScanDevices";
+import { useBleScanWithMock } from "../../../hooks/MockBleProvider/useBleScanWithMock";
 
 const { height } = Dimensions.get("window");
 
 const Start = () => {
   const router = useRouter();
-  const { setOnboardingComplete, setLastDevice } = useBleStore();
-  const { linkUp, connectedDevice } = useBleScan();
+  const { setOnboardingComplete } = useBleStore();
+  const { linkUp, connectedDevice } = useBleScanWithMock();
   const [selectedGender, setSelectedGender] = useState<Gender>("male");
   const [modalVisible, setModalVisible] = useState(false);
-
+  // const bleScanResult = useBleScan();
+  // console.log("🔧 useBleScan result:", bleScanResult);
+  // console.log("🔧 Keys:", Object.keys(bleScanResult || {}));
   useEffect(() => {
     console.log("🔗 linkUp:", linkUp);
     console.log(
@@ -38,7 +41,7 @@ const Start = () => {
 
     if (linkUp && connectedDevice) {
       console.log("✅ Connected, going to main");
-      router.push("/main");
+      router.push("/(main)/race");
     } else {
       console.log("⚠️ Not connected, showing modal");
       setModalVisible(true);
@@ -52,22 +55,16 @@ const Start = () => {
 
     setOnboardingComplete();
 
-    if (connectedDevice) {
-      setLastDevice(connectedDevice.id);
-    }
-
     setModalVisible(false);
 
     setTimeout(() => {
-      console.log("🚀 Navigating to /main");
-      router.push("/main");
+      router.push("/(main)/race");
     }, 300);
   };
 
   useEffect(() => {
-    const loadGender = async () => {
-      const gender = await getSelectedGender();
-      console.log("Selected gender:", gender);
+    const loadGender = () => {
+      const gender = getSelectedGender();
       setSelectedGender(gender);
     };
 
@@ -79,7 +76,11 @@ const Start = () => {
       <View style={styles.container}>
         <View style={styles.textContainer}>
           <Text variant="headlineLarge">Welcome to Hybit!</Text>
-          <Text style={styles.bodyText}>Start your day</Text>
+          <Text style={styles.bodyText}>
+            {linkUp
+              ? `Connected to ${connectedDevice?.name || "device"}`
+              : "Start your day"}
+          </Text>
         </View>
         <View style={styles.avatarContainer}>
           <View style={styles.avatar}>
@@ -104,16 +105,19 @@ const Start = () => {
           Start
         </PaperButton>
       </View>
+
       <ConnectionModal
         visible={modalVisible}
-        onDismiss={() => setModalVisible(false)}
-        onComplete={() => {
-          handleComplete;
+        onDismiss={() => {
+          console.log("❌ Modal dismissed");
+          setModalVisible(false);
         }}
+        onComplete={handleComplete}
       />
     </AuthBackground>
   );
 };
+
 const styles = StyleSheet.create({
   container: {
     ...mixins.flexCenterColumn,

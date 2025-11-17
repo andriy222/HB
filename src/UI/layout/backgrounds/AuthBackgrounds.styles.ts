@@ -1,4 +1,3 @@
-
 import { Dimensions, StyleSheet } from "react-native";
 import { colors, textPresets } from "../../../theme";
 
@@ -6,6 +5,7 @@ const { height } = Dimensions.get("window");
 
 export const styles = StyleSheet.create({
   background: {
+    position: "relative",
     flex: 1,
     width: "100%",
     height: "100%",

@@ -1,7 +1,7 @@
 import { Dimensions } from "react-native";
 import { AsepriteJSON } from "../components/SpriteAnimator/SpriteAnimator";
 const { width } = Dimensions.get("window");
-export const AVATAR_SIZE = width * 1; 
+export const AVATAR_SIZE = width; 
 export interface CharacterAssets {
   frontPoseSprite: string;
   frontPoseData: AsepriteJSON;

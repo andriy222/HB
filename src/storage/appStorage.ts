@@ -1,115 +1,138 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from "react-native";
+interface Storage {
+  getString: (key: string) => string | undefined;
+  set: (key: string, value: string | number | boolean) => void;
+  delete: (key: string) => void;
+  clearAll: () => void;
+}
 
-/**
- * Storage keys
- */
-export const STORAGE_KEYS = {
-  AUTH_TOKEN: 'auth_token',
-  REFRESH_TOKEN: 'refresh_token',
-  USER_DATA: 'user_data',
-  IS_FIRST_TIME: 'is_first_time',
-  THEME_PREFERENCE: 'theme_preference',
-  USERS: 'users',
-  PASSWORDS: 'passwords'
-} as const;
+let storage: Storage;
 
-/**
- * Generic storage operations
- */
-export const storage = {
-  /**
-   * Save data to AsyncStorage
-   */
-  setItem: async <T>(key: string, value: T): Promise<void> => {
-    try {
-      const jsonValue = JSON.stringify(value);
-      await AsyncStorage.setItem(key, jsonValue);
-    } catch (error) {
-      console.error(`Error saving ${key}:`, error);
-      throw error;
-    }
+if (Platform.OS === "web") {
+
+  storage = {
+    getString: (key: string) => {
+      if (typeof window !== "undefined" && window.localStorage) {
+        return window.localStorage.getItem(key) ?? undefined;
+      }
+      return undefined;
+    },
+    set: (key: string, value: string | number | boolean) => {
+      if (typeof window !== "undefined" && window.localStorage) {
+        window.localStorage.setItem(key, String(value));
+      }
+    },
+    delete: (key: string) => {
+      if (typeof window !== "undefined" && window.localStorage) {
+        window.localStorage.removeItem(key);
+      }
+    },
+    clearAll: () => {
+      if (typeof window !== "undefined" && window.localStorage) {
+        window.localStorage.clear();
+      }
+    },
+  };
+} else {
+  try {
+    const { MMKV } = require("react-native-mmkv");
+    const mmkv = new MMKV();
+    
+    storage = {
+      getString: (key: string) => mmkv.getString(key),
+      set: (key: string, value: string | number | boolean) => mmkv.set(key, value),
+      delete: (key: string) => mmkv.delete(key),
+      clearAll: () => mmkv.clearAll(),
+    };
+    
+    console.log("💾 Using MMKV storage");
+  } catch (e) {
+    console.warn("⚠️ MMKV not available, falling back to AsyncStorage");
+    
+    const AsyncStorage = require("@react-native-async-storage/async-storage").default;
+    
+    storage = {
+      getString: (key: string) => {
+        let result: string | undefined;
+        AsyncStorage.getItem(key).then((v: string | null) => {
+          result = v ?? undefined;
+        });
+        return result;
+      },
+      set: (key: string, value: string | number | boolean) => {
+        AsyncStorage.setItem(key, String(value));
+      },
+      delete: (key: string) => {
+        AsyncStorage.removeItem(key);
+      },
+      clearAll: () => {
+        AsyncStorage.clear();
+      },
+    };
+  }
+}
+
+
+export const mmkvStorage = {
+
+  getString(key: string): string | null {
+    return storage.getString(key) ?? null;
   },
 
-  /**
-   * Get data from AsyncStorage
-   */
-  getItem: async <T>(key: string): Promise<T | null> => {
+  getNumber(key: string): number | null {
+    const value = storage.getString(key);
+    if (!value) return null;
+    const num = parseFloat(value);
+    return Number.isFinite(num) ? num : null;
+  },
+
+  getBoolean(key: string): boolean | null {
+    const value = storage.getString(key);
+    if (value === "true") return true;
+    if (value === "false") return false;
+    return null;
+  },
+
+  getObject<T>(key: string): T | null {
+    const value = storage.getString(key);
+    if (!value) return null;
     try {
-      const jsonValue = await AsyncStorage.getItem(key);
-      return jsonValue != null ? JSON.parse(jsonValue) : null;
-    } catch (error) {
-      console.error(`Error reading ${key}:`, error);
+      return JSON.parse(value) as T;
+    } catch {
       return null;
     }
   },
 
-  /**
-   * Remove item from AsyncStorage
-   */
-  removeItem: async (key: string): Promise<void> => {
-    try {
-      await AsyncStorage.removeItem(key);
-    } catch (error) {
-      console.error(`Error removing ${key}:`, error);
-      throw error;
+  set(key: string, value: string | number | boolean | object): void {
+    if (typeof value === "object") {
+      storage.set(key, JSON.stringify(value));
+    } else {
+      storage.set(key, value);
     }
   },
 
-  /**
-   * Clear all AsyncStorage data
-   */
-  clear: async (): Promise<void> => {
-    try {
-      await AsyncStorage.clear();
-    } catch (error) {
-      console.error('Error clearing storage:', error);
-      throw error;
-    }
+  delete(key: string): void {
+    storage.delete(key);
   },
 
-  /**
-   * Get all keys from AsyncStorage
-   */
-  getAllKeys: async (): Promise<readonly string[]> => {
-    try {
-      return await AsyncStorage.getAllKeys();
-    } catch (error) {
-      console.error('Error getting all keys:', error);
-      return [];
-    }
+  clearAll(): void {
+    storage.clearAll();
+  },
+
+  contains(key: string): boolean {
+    return storage.getString(key) !== undefined;
   },
 };
 
-/**
- * App-specific storage operations
- */
-export const appStorage = {
-  /**
-   * Check if it's user's first time opening the app
-   */
-  isFirstTime: async (): Promise<boolean> => {
-    const value = await storage.getItem<boolean>(STORAGE_KEYS.IS_FIRST_TIME);
-    return value === null; // null = first time
-  },
-
-  /**
-   * Mark that user has opened the app before
-   */
-  setNotFirstTime: async (): Promise<void> => {
-    await storage.setItem(STORAGE_KEYS.IS_FIRST_TIME, false);
-  },
-
-  /**
-   * Get theme preference (light/dark)
-   */
-  getThemePreference: async (): Promise<'light' | 'dark' | null> => {
-    return await storage.getItem<'light' | 'dark'>(STORAGE_KEYS.THEME_PREFERENCE);
-  },
-
-  /**
-   * Save theme preference
-   */
-  setThemePreference: async (theme: 'light' | 'dark'): Promise<void> => {
-    await storage.setItem(STORAGE_KEYS.THEME_PREFERENCE, theme);
-  },
-};
+export const STORAGE_KEYS = {
+  ACTIVE_SESSION: "hybit:activeSession",
+  LAST_UPDATE: "hybit:lastUpdate",
+  
+  GENDER: "user:gender",
+  HYDRATION_GOAL_PER_PERIOD: "hydration:goalPerPeriod",
+  HYDRATION_PERIOD_MIN: "hydration:periodMin",
+  
+  LAST_DEVICE_ID: "ble:lastDeviceId",
+  
+  ONBOARDING_COMPLETE: "app:onboardingComplete",
+} as const;

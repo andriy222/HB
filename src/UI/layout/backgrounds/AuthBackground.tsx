@@ -14,22 +14,27 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { styles } from "./AuthBackgrounds.styles";
 
 const backgroundImage = require("../../../../assets/images/background.png");
+const backgroundImageMain = require("../../../../assets/images/background-2.png");
 
 interface AuthLayoutProps {
   children: ReactNode;
   title?: string;
   showTitle?: boolean;
   isSecondary?: boolean;
+  isMain?: boolean;
+  footer?: ReactNode;
 }
 
 export default function AuthBackground({
   children,
   showTitle = true,
   isSecondary = true,
+  isMain = false,
+  footer,
 }: AuthLayoutProps) {
   return (
     <ImageBackground
-      source={backgroundImage}
+      source={isMain ? backgroundImageMain : backgroundImage}
       style={styles.background}
       resizeMode="cover"
     >
@@ -76,6 +81,7 @@ export default function AuthBackground({
             </ScrollView>
           </TouchableWithoutFeedback>
         </KeyboardAvoidingView>
+        {footer}
       </SafeAreaView>
     </ImageBackground>
   );

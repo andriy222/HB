@@ -5,6 +5,7 @@ import PaperButton from "../../UI/PaperButton/PaperButton";
 import { styles } from "./ConnectedCoasterScreen.styles";
 import { useBleScan } from "../../hooks/useScanDevices";
 import { usePermissions } from "../../hooks/usePermissions";
+import { useBleScanWithMock } from "../../hooks/MockBleProvider/useBleScanWithMock";
 
 const coasterImage = require("../../../assets/coaster.png");
 
@@ -19,10 +20,11 @@ export default function ConnectCoasterScreen({
 }: ConnectCoasterScreenProps) {
   const [connectionState, setConnectionState] =
     useState<ConnectionState>("idle");
-  const { startScan, devices, connectToDevice } = useBleScan();
+  const { startScan, devices, connectToDevice, stopScan } =
+    useBleScanWithMock();
   const { hasPermission, request } = usePermissions();
-
   const handleConnect = async () => {
+    // Перевірити дозволи
     if (!hasPermission) {
       const granted = await request();
 
@@ -38,11 +40,19 @@ export default function ConnectCoasterScreen({
 
     setConnectionState("scanning");
 
+    // Почати сканування
     startScan();
 
-    await new Promise((resolve) => setTimeout(resolve, 3000));
+    // Почекати для знаходження пристроїв
+    await new Promise((resolve) => setTimeout(resolve, 5000));
 
-    if (devices.length === 0) {
+    // Зупинити сканування
+    stopScan();
+
+    console.log("Found devices:", devices.length, devices);
+
+    // Перевірити чи знайшли пристрій
+    if (!devices || devices.length === 0) {
       Alert.alert(
         "Device Not Found",
         "Could not find Hybit coaster. Make sure it's powered on and in pairing mode (press Bluetooth button for 3 seconds).",
@@ -50,13 +60,21 @@ export default function ConnectCoasterScreen({
       );
       return;
     }
+    const firstDevice = devices[0];
+    if (!firstDevice?.id) {
+      Alert.alert("Error", "Device ID not found", [
+        { text: "OK", onPress: () => setConnectionState("idle") },
+      ]);
+      return;
+    }
 
     setConnectionState("connecting");
 
-    // Показати pairing request
     Alert.alert(
       "Bluetooth Pairing Request",
-      '"Hybit coaster" would like to pair with your iPhone.',
+      `"${
+        firstDevice.name || "Hybit coaster"
+      }" would like to pair with your iPhone.`,
       [
         {
           text: "Cancel",
@@ -67,20 +85,25 @@ export default function ConnectCoasterScreen({
         },
         {
           text: "Pair",
+
           onPress: async () => {
+            if (!firstDevice.id) {
+              throw new Error("Device ID is missing");
+            }
             try {
-              // Підключитися до першого знайденого пристрою
-              const device = await connectToDevice(devices[0].id);
+              console.log("Connecting to device:", firstDevice.id);
+
+              const device = await connectToDevice(firstDevice.id);
 
               if (device) {
+                console.log("Connected successfully:", device.id);
                 setConnectionState("success");
 
-                // Перейти далі через 2 секунди
                 setTimeout(() => {
                   onConnect();
                 }, 2000);
               } else {
-                throw new Error("Connection failed");
+                throw new Error("Connection returned null");
               }
             } catch (error) {
               console.error("Connection error:", error);
@@ -89,6 +112,7 @@ export default function ConnectCoasterScreen({
                 "Could not connect to the device. Please try again.",
                 [{ text: "OK", onPress: () => setConnectionState("idle") }]
               );
+              setConnectionState("idle");
             }
           },
         },
@@ -117,7 +141,7 @@ export default function ConnectCoasterScreen({
           </PaperButton>
         )}
 
-        {connectionState === "connecting" && <View style={styles.dot} />}
+        {connectionState === "scanning" && <View style={styles.dot} />}
 
         {connectionState === "success" && <View style={styles.successCircle} />}
       </View>

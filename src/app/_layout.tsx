@@ -69,9 +69,12 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <PaperProvider theme={theme}>
         <Stack screenOptions={{ headerShown: false }}>
+          {/* <Stack> */}
           <Stack.Screen name="index" />
           <Stack.Screen name="welcome" />
           <Stack.Screen name="(on-boarding)" />
+          <Stack.Screen name="(main)" />
+          <Stack.Screen name="devtools" />
         </Stack>
       </PaperProvider>
     </SafeAreaProvider>

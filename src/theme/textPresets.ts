@@ -165,18 +165,27 @@ export const textPresets = {
     letterSpacing: typography.letterSpacing.normal,
     textAlign: "center" as const,
     colors: colors.text.secondaryGray
+  },
+  coasterText: {
+    fontFamily: typography.fontFamily.sora.medium,
+    fontWeight: typography.fontWeight.medium,
+    fontSize: typography.fontSize.xl, 
+    letterSpacing: typography.letterSpacing.normal,
+    colors: colors.text.primary
+  },
+  coasterTextSecondary: {
+    fontFamily: typography.fontFamily.sora.medium,
+    fontWeight: typography.fontWeight.medium,
+    fontSize: typography.fontSize.base,
+    letterSpacing: typography.letterSpacing.normal,
+    colors: colors.text.primary
+  },
+  connectionLabel: {
+    fontFamily: typography.fontFamily.inter.semiBold,
+    fontWeight: typography.fontWeight.semiBold,
+    lineHeight: 1.21,
+    fontSize: typography.fontSize.md,
   }
-// font-family: Inter;
-// font-weight: 400;
-// font-style: Regular;
-// font-size: 14px;
-// leading-trim: NONE;
-// line-height: 121%;
-// letter-spacing: 0%;
-// text-align: center;
-// vertical-align: middle;
-
-
 };
 
 

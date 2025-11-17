@@ -1,34 +1,29 @@
-import { View, StyleSheet, Dimensions } from "react-native";
-import { colors } from "../../theme";
-const { width } = Dimensions.get("window");
-export default function Podium() {
+import { ImageBackground, View } from "react-native";
+import { styles } from "./Podium.styles";
+
+const raceWay = require("../../../assets/images/race-way.png");
+
+interface PodiumProps {
+  isMain?: boolean;
+}
+
+export default function Podium({ isMain = false }: PodiumProps) {
+  if (isMain) {
+    return (
+      <View style={styles.mainContainer}>
+        <ImageBackground
+          source={raceWay}
+          resizeMode="contain"
+          style={styles.raceWay}
+        />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      <View style={styles.whiteLine}></View>
-      <View style={styles.whiteLineSecond}></View>
+      <View style={styles.whiteLine} />
+      <View style={styles.whiteLineSecond} />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    position: "relative",
-    width: width,
-    height: 76,
-    backgroundColor: colors.podium.primary,
-  },
-  whiteLine: {
-    position: "absolute",
-    top: 10,
-    width: width,
-    height: 8,
-    backgroundColor: colors.podium.secondary,
-  },
-  whiteLineSecond: {
-    position: "absolute",
-    bottom: 10,
-    width: width,
-    height: 8,
-    backgroundColor: colors.podium.secondary,
-  },
-});

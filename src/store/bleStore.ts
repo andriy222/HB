@@ -1,84 +1,59 @@
-// import { create } from 'zustand';
-// import { createJSONStorage, persist } from 'zustand/middleware';
-// import { MMKV } from 'react-native-mmkv';
-
-// const storage = new MMKV();
-
-// const mmkvStorage = {
-//   getItem: (name: string) => {
-//     const value = storage.getString(name);
-//     return value ?? null;
-//   },
-//   setItem: (name: string, value: string) => {
-//     storage.set(name, value);
-//   },
-//   removeItem: (name: string) => {
-//     storage.delete(name);
-//   },
-// };
-
-// interface BleState {
-//   hasCompletedOnboarding: boolean;
-//   setOnboardingComplete: () => void;
-//   reset: () => void;
-// }
-
-// export const useBleStore = create<BleState>()(
-//   persist(
-//     (set) => ({
-//       hasCompletedOnboarding: false,
-      
-//       setOnboardingComplete: () => set({ 
-//         hasCompletedOnboarding: true,
-//       }),
-
-//       reset: () => set({
-//         hasCompletedOnboarding: false,
-//       }),
-//     }),
-//     {
-//       name: 'ble-onboarding',
-//       storage: createJSONStorage(() => mmkvStorage),
-//     }
-//   )
-// );
-
-// store/bleStore.ts
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createMMKV } from 'react-native-mmkv';
+
+export const storage = createMMKV();
+
+const mmkvStorage = {
+  getItem: (name: string) => {
+    const value = storage.getString(name);
+    return value ?? null;
+  },
+  setItem: (name: string, value: string) => {
+    storage.set(name, value);
+  },
+  removeItem: (name: string) => {
+    storage.remove(name);
+  },
+};
+
+// Debug 
+export const debugStorage = () => {
+  console.log("📦 All MMKV keys:", storage.getAllKeys());
+  
+  storage.getAllKeys().forEach(key => {
+    const value = storage.getString(key) ?? storage.getNumber(key);
+    console.log(`📦 ${key}:`, value);
+  });
+};
+
+export const clearStorage = () => {
+  storage.clearAll();
+  console.log("🗑️ Storage cleared");
+};
 
 interface BleState {
   hasCompletedOnboarding: boolean;
-  lastConnectedDeviceId: string | null;
-  
   setOnboardingComplete: () => void;
-  setLastDevice: (deviceId: string) => void;
   reset: () => void;
-}
+ }
 
 export const useBleStore = create<BleState>()(
   persist(
     (set) => ({
       hasCompletedOnboarding: false,
-      lastConnectedDeviceId: null,
       
       setOnboardingComplete: () => set({ 
         hasCompletedOnboarding: true,
       }),
 
-      setLastDevice: (deviceId: string) => set({
-        lastConnectedDeviceId: deviceId,
-      }),
-
       reset: () => set({
         hasCompletedOnboarding: false,
-        lastConnectedDeviceId: null,
       }),
     }),
     {
       name: 'ble-onboarding',
-      storage: createJSONStorage(() => AsyncStorage),
+      storage: createJSONStorage(() => mmkvStorage),
     }
   )
 );
