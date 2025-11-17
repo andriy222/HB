@@ -1,5 +1,5 @@
 import { Platform } from "react-native";
-import { SessionState } from "../hooks/useBleConnection/sessionTypes";
+import { SessionState, SESSION_CONFIG } from "../hooks/useBleConnection/sessionTypes";
 /**
  * Session Persistence
  * 
@@ -50,8 +50,9 @@ export async function saveSession(session: SessionState): Promise<void> {
     const json = JSON.stringify(session);
     await setItemAsync(SESSION_KEY, json);
     await setItemAsync(LAST_UPDATE_KEY, String(Date.now()));
-    
-    console.log("💾 Session saved");
+
+    const elapsed = Math.floor((Date.now() - session.startTime) / 1000);
+    console.log(`💾 Session saved (${elapsed}s elapsed, stamina: ${session.currentStamina})`);
   } catch (e) {
     console.error("Failed to save session:", e);
   }
@@ -67,17 +68,17 @@ export async function loadSession(): Promise<SessionState | null> {
 
     const now = Date.now();
     const age = now - session.startTime;
-    const maxAge = 8 * 60 * 60 * 1000; 
-    
+    const maxAge = (SESSION_CONFIG.duration + 60) * 60 * 1000; // Duration + 1 hour grace period
+
     if (age > maxAge) {
       console.log("💾 Session too old, clearing");
       await clearSession();
       return null;
     }
 
-    const duration = 7 * 60 * 60 * 1000; 
+    const duration = SESSION_CONFIG.duration * 60 * 1000;
     if (session.isActive && (now - session.startTime) >= duration) {
-      console.log("💾 Session exceeded 7h, marking complete");
+      console.log(`💾 Session exceeded ${SESSION_CONFIG.duration}min, marking complete`);
       session.isActive = false;
       session.isComplete = true;
       session.endTime = session.startTime + duration;
