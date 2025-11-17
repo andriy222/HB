@@ -9,9 +9,21 @@
     "web": "expo start --web",
     "tunnel": "npx expo start --dev-client --tunnel",
     "update-ios": "eas update --branch production",
+    "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
+    "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix",
+    "type-check": "tsc --noEmit",
+    "prepare": "husky install"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "git add"
+    ]
+
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"
+
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
@@ -45,6 +57,16 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+
+    "@react-native/eslint-config": "^0.76.0",
+    "@types/react": "~19.1.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "eslint-plugin-react": "^7.33.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "husky": "^8.0.3",
+    "lint-staged": "^15.0.0",
     "@testing-library/jest-native": "^5.4.3",
     "@testing-library/react-native": "^13.3.3",
     "@types/jest": "^30.0.0",
