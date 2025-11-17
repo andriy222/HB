@@ -1,37 +1,20 @@
 import { Gender } from "../../utils/storage";
 import { SESSION_CONFIG, IntervalData } from "./sessionTypes";
-
-// Penalty configuration
-const PENALTY = {
-  first: {
-    ml500Plus: 0,
-    ml250to499: -15,
-    ml1to249: -30,
-    ml0: -40,
-  },
-  regular: {
-    shortage0: 0,
-    shortage0to25: -2,
-    shortage25to50: -4,
-    shortage50to75: -6,
-    shortage75to100: -6.5,
-  },
-};
-
-// Hydration targets
-const TARGETS = {
-  male: { total: 3500, first10min: 500 },
-  female: { total: 3000, first10min: 500 },
-};
+import {
+  STAMINA_PENALTY,
+  HYDRATION_TARGETS,
+  AVATAR_THRESHOLDS,
+  SPEED_CONFIG,
+} from "../../constants/sessionConstants";
 
 /**
  * Calculate penalty for first interval (500ml)
  */
 export function calculateFirstPenalty(ml: number): number {
-  if (ml >= 500) return PENALTY.first.ml500Plus;
-  if (ml >= 250) return PENALTY.first.ml250to499;
-  if (ml >= 1) return PENALTY.first.ml1to249;
-  return PENALTY.first.ml0;
+  if (ml >= 500) return STAMINA_PENALTY.first.ml500Plus;
+  if (ml >= 250) return STAMINA_PENALTY.first.ml250to499;
+  if (ml >= 1) return STAMINA_PENALTY.first.ml1to249;
+  return STAMINA_PENALTY.first.ml0;
 }
 
 /**
@@ -42,10 +25,10 @@ export function calculateRegularPenalty(required: number, actual: number): numbe
   if (shortage === 0) return 0;
 
   const pct = (shortage / required) * 100;
-  if (pct <= 25) return PENALTY.regular.shortage0to25;
-  if (pct <= 50) return PENALTY.regular.shortage25to50;
-  if (pct <= 75) return PENALTY.regular.shortage50to75;
-  return PENALTY.regular.shortage75to100;
+  if (pct <= 25) return STAMINA_PENALTY.regular.shortage0to25;
+  if (pct <= 50) return STAMINA_PENALTY.regular.shortage25to50;
+  if (pct <= 75) return STAMINA_PENALTY.regular.shortage50to75;
+  return STAMINA_PENALTY.regular.shortage75to100;
 }
 
 /**
@@ -62,7 +45,8 @@ export function calculateStamina(intervals: IntervalData[]): number {
  */
 export function calculateDistance(stamina: number, elapsedMin: number): number {
   const ratio = stamina / SESSION_CONFIG.maxStamina;
-  const speed = 0.2 + 0.8 * ratio; // 20%-100% speed
+  const speed = SPEED_CONFIG.MIN_SPEED_RATIO +
+    (SPEED_CONFIG.MAX_SPEED_RATIO - SPEED_CONFIG.MIN_SPEED_RATIO) * ratio;
   const base = (elapsedMin / SESSION_CONFIG.duration) * SESSION_CONFIG.maxDistance;
   return Math.min(base * speed, SESSION_CONFIG.maxDistance);
 }
@@ -72,8 +56,8 @@ export function calculateDistance(stamina: number, elapsedMin: number): number {
  */
 export function getAvatarState(stamina: number): "normal" | "tired" | "exhausted" {
   const ratio = stamina / SESSION_CONFIG.maxStamina;
-  if (ratio > 0.66) return "normal";
-  if (ratio > 0.33) return "tired";
+  if (ratio > AVATAR_THRESHOLDS.NORMAL) return "normal";
+  if (ratio > AVATAR_THRESHOLDS.TIRED) return "tired";
   return "exhausted";
 }
 
@@ -86,7 +70,7 @@ export function createInterval(
   gender: Gender,
   actualMl: number = 0
 ): IntervalData {
-  const target = TARGETS[gender];
+  const target = HYDRATION_TARGETS[gender];
   const isFirst = index === 0;
   const required = isFirst ? target.first10min : (target.total - target.first10min) / 41;
 

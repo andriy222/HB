@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Device } from "react-native-ble-plx";
-import { Platform } from "react-native";
+import { base64Decode, base64Encode } from "../../utils/base64";
+import { captureBLEError, trackBLEEvent } from "../../utils/sentry";
 
 interface BLEConfig {
   targetService: string;
@@ -32,22 +33,15 @@ export function useBLEConnection(
   const { targetService, rxCharacteristic, txCharacteristic } = config;
 
   /**
-   * Base64 → UTF-8 decoder (RN-safe)
+   * Base64 → UTF-8 decoder (cross-platform with fallback)
    */
   const decodeBase64 = useCallback((b64: string): string => {
     try {
-      if (typeof atob === "function") {
-        const binary = atob(b64);
-        const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) {
-          bytes[i] = binary.charCodeAt(i);
-        }
-        return new TextDecoder("utf-8").decode(bytes);
-      }
+      return base64Decode(b64);
     } catch (e) {
       console.warn("Failed to decode base64:", e);
+      return "";
     }
-    return "";
   }, []);
 
   /**
@@ -118,10 +112,11 @@ export function useBLEConnection(
     try {
       if (subscriptionRef.current) {
         try {
-          if (Platform.OS !== "android") {
-            subscriptionRef.current.remove();
-          }
-        } catch {}
+          // Remove subscription on all platforms to prevent memory leak
+          subscriptionRef.current.remove();
+        } catch (error) {
+          console.warn("Failed to remove BLE subscription:", error);
+        }
         subscriptionRef.current = null;
       }
 
@@ -134,6 +129,7 @@ export function useBLEConnection(
         (error, characteristic) => {
           if (error) {
             console.warn("BLE RX error:", error);
+            captureBLEError("subscribe", error, device.id);
             return;
           }
 
@@ -152,10 +148,12 @@ export function useBLEConnection(
 
       subscriptionRef.current = subscription;
       setIsReady(true);
-      
+
+      trackBLEEvent("rx_subscribed", { deviceId: device.id });
       console.log("✅ BLE RX subscribed");
     } catch (e) {
       console.error("Subscribe failed:", e);
+      captureBLEError("subscribe", e as Error, device?.id);
       setIsReady(false);
     }
   }, [device, isConnected, targetService, rxCharacteristic, decodeBase64, handleLine]);
@@ -167,7 +165,7 @@ export function useBLEConnection(
     }
 
     try {
-      const base64 = btoa(command);
+      const base64 = base64Encode(command);
       
       try {
         await device.writeCharacteristicWithResponseForService(
@@ -187,6 +185,7 @@ export function useBLEConnection(
       return true;
     } catch (e) {
       console.error("Send failed:", e);
+      captureBLEError("send_command", e as Error, device?.id);
       return false;
     }
   }, [device, isConnected, targetService, txCharacteristic]);
@@ -199,10 +198,11 @@ export function useBLEConnection(
     return () => {
       if (subscriptionRef.current) {
         try {
-          if (Platform.OS !== "android") {
-            subscriptionRef.current.remove();
-          }
-        } catch {}
+          // Remove subscription on all platforms to prevent memory leak
+          subscriptionRef.current.remove();
+        } catch (error) {
+          console.warn("Failed to remove BLE subscription:", error);
+        }
         subscriptionRef.current = null;
       }
       setIsReady(false);
