@@ -20,11 +20,47 @@ interface CoasterSessionConfig {
 
 export function useCoasterSession(config: CoasterSessionConfig) {
   const { device, isConnected, dlPerInterval = BLE_PROTOCOL.LOGS_PER_INTERVAL } = config;
-  
+
   const session = useSession();
   const sessionStartedRef = useRef(false);
   const autoSyncRef = useRef(false);
   const lastDLTimestampRef = useRef<number | null>(null);
+
+  // Store session in ref to avoid recreating callbacks
+  const sessionRef = useRef(session);
+  sessionRef.current = session;
+
+  /**
+   * Map DL → Interval
+   */
+  const mapDLToInterval = useCallback((dlIndex: number): number => {
+    return Math.floor(dlIndex / dlPerInterval);
+  }, [dlPerInterval]);
+
+  /**
+   * Handle BLE data - using ref to avoid dependency changes
+   */
+  const handleBLEData = useCallback((data: { index: number; ml: number }) => {
+    const currentSession = sessionRef.current;
+    if (!currentSession.isActive) return;
+
+    const intervalIndex = mapDLToInterval(data.index);
+
+    if (intervalIndex < 0 || intervalIndex > 41) {
+      console.warn(`⚠️ Interval ${intervalIndex} out of range`);
+      return;
+    }
+
+    // Update last DL timestamp for reconnect detection
+    lastDLTimestampRef.current = Date.now();
+
+    // Record hydration
+    currentSession.recordDrink(data.ml);
+
+    console.log(
+      `💧 DL ${data.index} → Interval ${intervalIndex}: +${data.ml.toFixed(1)}ml`
+    );
+  }, [mapDLToInterval]);
 
   // Reconnect handler
   const reconnect = useReconnectHandler(isConnected, {
@@ -68,6 +104,17 @@ export function useCoasterSession(config: CoasterSessionConfig) {
     },
   });
 
+  // Store protocol in ref to avoid recreating callbacks
+  const protocolRef = useRef(protocol);
+  protocolRef.current = protocol;
+
+  /**
+   * Handle protocol lines (ACK/END/ERR/SDT)
+   */
+  const handleProtocolLine = useCallback((line: string) => {
+    protocolRef.current.handleProtocolLine(line);
+  }, []);
+
   // BLE (with mock support)
   const ble = useBLEWrapper(
     {
@@ -80,44 +127,6 @@ export function useCoasterSession(config: CoasterSessionConfig) {
     handleBLEData,
     handleProtocolLine
   );
-
-  /**
-   * Map DL → Interval
-   */
-  const mapDLToInterval = useCallback((dlIndex: number): number => {
-    return Math.floor(dlIndex / dlPerInterval);
-  }, [dlPerInterval]);
-
-  /**
-   * Handle BLE data
-   */
-  const handleBLEData = useCallback((data: { index: number; ml: number }) => {
-    if (!session.isActive) return;
-
-    const intervalIndex = mapDLToInterval(data.index);
-
-    if (intervalIndex < 0 || intervalIndex > 41) {
-      console.warn(`⚠️ Interval ${intervalIndex} out of range`);
-      return;
-    }
-
-    // Update last DL timestamp for reconnect detection
-    lastDLTimestampRef.current = Date.now();
-
-    // Record hydration
-    session.recordDrink(data.ml);
-
-    console.log(
-      `💧 DL ${data.index} → Interval ${intervalIndex}: +${data.ml.toFixed(1)}ml`
-    );
-  }, [session.isActive, session.recordDrink, mapDLToInterval]);
-
-  /**
-   * Handle protocol lines (ACK/END/ERR/SDT)
-   */
-  const handleProtocolLine = useCallback((line: string) => {
-    protocol.handleProtocolLine(line);
-  }, [protocol.handleProtocolLine]);
 
   /**
    * Auto-start session
