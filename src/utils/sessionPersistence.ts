@@ -2,9 +2,9 @@ import { Platform } from "react-native";
 import { SessionState, SESSION_CONFIG } from "../hooks/useBleConnection/sessionTypes";
 /**
  * Session Persistence
- * 
+ *
  * Save/restore session state using MMKV or AsyncStorage
- * 
+ *
  * Features:
  * - Save active session
  * - Restore on app restart
@@ -36,7 +36,7 @@ if (Platform.OS === "web") {
     getItem: (k: string) => Promise<string | null>;
     removeItem: (k: string) => Promise<void>;
   };
-  
+
   setItemAsync = async (key, value) => {
     if (value == null) await AsyncStorage.removeItem(key);
     else await AsyncStorage.setItem(key, value);

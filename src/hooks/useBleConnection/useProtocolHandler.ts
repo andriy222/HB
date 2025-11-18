@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { BLE_TIMEOUTS } from "../../constants/bleConstants";
 
 /**
@@ -35,7 +35,7 @@ export function useProtocolHandler(callbacks?: ProtocolHandlerCallbacks) {
   const awaitingGoalAckRef = useRef(false);
   const awaitingSyncAckRef = useRef(false);
   const dlCountRef = useRef(0);
-  const idleTimerRef = useRef<any>(null);
+  const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleProtocolLine = useCallback((line: string) => {
     const trimmed = line.trim().toUpperCase();
@@ -145,12 +145,22 @@ export function useProtocolHandler(callbacks?: ProtocolHandlerCallbacks) {
 
   const getDLCount = useCallback(() => dlCountRef.current, []);
 
+  // Cleanup timer on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current);
+        idleTimerRef.current = null;
+      }
+    };
+  }, []);
+
   return {
     state,
     dlCount,
     lastError,
     isWaitingForAck: awaitingGoalAckRef.current || awaitingSyncAckRef.current,
-    
+
     handleProtocolLine,
     expectGoalAck,
     expectSyncAck,

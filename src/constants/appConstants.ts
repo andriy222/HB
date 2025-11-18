@@ -34,6 +34,15 @@ export const VALIDATION = {
 
   /** Minimum ml value for validation */
   ML_MIN: 0,
+
+  /** Maximum ml value for validation (10 liters should be enough) */
+  ML_MAX: 10000,
+
+  /** Maximum line length for BLE data (prevent DoS attacks) */
+  MAX_LINE_LENGTH: 1000,
+
+  /** Maximum base64 chunk size (prevent memory exhaustion) */
+  MAX_BASE64_CHUNK_SIZE: 10000,
 } as const;
 
 /**

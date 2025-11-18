@@ -3,19 +3,19 @@ import { useRouter } from "expo-router";
 import { useOnboardingStatus } from "../hooks/useOnboardingStatus/useOnboardingStatus";
 export default function Index() {
   const router = useRouter()
-  const { nextRoute } = useOnboardingStatus();
+  const { nextRoute, isComplete } = useOnboardingStatus();
+
   useEffect(() => {
     checkInitialRoute();
-  }, []);
+  }, [nextRoute]);
 
   const checkInitialRoute = async () => {
     try {
-      const isFirstTime =  true
-      if (isFirstTime) {
-        console.log("👋 First time, going to /welcome");
-        router.replace("/welcome");
-      } else {
+      if (isComplete) {
         console.log("🏠 Redirecting to", nextRoute);
+        router.replace(nextRoute);
+      } else {
+        console.log("👋 First time or incomplete onboarding, going to", nextRoute);
         router.replace(nextRoute);
       }
     } catch (error) {

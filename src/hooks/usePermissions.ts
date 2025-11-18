@@ -68,8 +68,13 @@ export const usePermissions = () => {
 
   // check on mount once
   useEffect(() => {
-    request();
-  }, [request]);
+    // Call requestPermissions directly to avoid dependency on request callback
+    const checkPermissions = async () => {
+      const granted = await requestPermissions();
+      setHasPermission(granted);
+    };
+    checkPermissions();
+  }, []); // Empty dependency array - only run on mount
 
   return { hasPermission, request };
 };

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Device } from "react-native-ble-plx";
+import { Device, Subscription } from "react-native-ble-plx";
 import { base64Decode, base64Encode } from "../../utils/base64";
 import { captureBLEError, trackBLEEvent } from "../../utils/sentry";
 import { logger } from "../../utils/logger";
@@ -27,9 +27,9 @@ export function useBLEConnection(
 ) {
   const [isReady, setIsReady] = useState(false);
   const [batteryLevel, setBatteryLevel] = useState<number | null>(null);
-  
+
   const lineBufferRef = useRef<string>("");
-  const subscriptionRef = useRef<any>(null);
+  const subscriptionRef = useRef<Subscription | null>(null);
   const seenIndicesRef = useRef<Set<number>>(new Set());
 
   const { targetService, rxCharacteristic, txCharacteristic } = config;
@@ -39,6 +39,11 @@ export function useBLEConnection(
    */
   const decodeBase64 = useCallback((b64: string): string => {
     try {
+      // Validate base64 string length to prevent memory exhaustion
+      if (b64.length > VALIDATION.MAX_BASE64_CHUNK_SIZE) {
+        logger.warn(`Base64 chunk too large: ${b64.length} bytes`);
+        return "";
+      }
       return base64Decode(b64);
     } catch (e) {
       logger.warn("Failed to decode base64", e);
@@ -52,11 +57,20 @@ export function useBLEConnection(
   const parseDLLine = useCallback((line: string): ParsedDLLine | null => {
     if (!line.startsWith(PROTOCOL_COMMANDS.DL)) return null;
 
+    // Validate line length to prevent DoS attacks
+    if (line.length > VALIDATION.MAX_LINE_LENGTH) {
+      logger.warn(`DL line too long: ${line.length} chars`);
+      return null;
+    }
+
     const indexMatch = REGEX_PATTERNS.DL_INDEX.exec(line);
     if (!indexMatch) return null;
 
     const index = parseInt(indexMatch[1], 10);
-    if (!Number.isFinite(index)) return null;
+    if (!Number.isFinite(index) || index < 0) {
+      logger.warn(`Invalid DL index: ${indexMatch[1]}`);
+      return null;
+    }
 
     let ml = NaN;
     const afterIndex = REGEX_PATTERNS.DL_VALUE.exec(line);
@@ -71,7 +85,11 @@ export function useBLEConnection(
       }
     }
 
-    if (!Number.isFinite(ml)) return null;
+    // Validate ml value range
+    if (!Number.isFinite(ml) || ml < VALIDATION.ML_MIN || ml > VALIDATION.ML_MAX) {
+      logger.warn(`Invalid DL ml value: ${ml}`);
+      return null;
+    }
 
     return { index, ml, raw: line };
   }, []);
@@ -89,6 +107,12 @@ export function useBLEConnection(
   const handleLine = useCallback((line: string) => {
     const trimmed = line.trim();
     if (!trimmed) return;
+
+    // Validate line length to prevent DoS attacks
+    if (trimmed.length > VALIDATION.MAX_LINE_LENGTH) {
+      logger.warn(`Line too long, ignoring: ${trimmed.length} chars`);
+      return;
+    }
 
     logger.ble(`RX: ${trimmed}`);
 

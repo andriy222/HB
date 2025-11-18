@@ -9,7 +9,7 @@ import {
   calculateRegularPenalty,
 } from "./staminaEngine";
 import { useIntervalTimer } from "./useIntervalTimer";
-import { clearSession, loadSession, saveSession } from "../../utils/sessionPerssistance";
+import { clearSession, loadSession, saveSession } from "../../utils/sessionPersistence";
 import { Gender } from "../../utils/storage";
 import { updateBestRunIfBetter } from "../../storage/appStorage";
 

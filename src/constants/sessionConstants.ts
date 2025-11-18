@@ -20,14 +20,14 @@ export const SESSION_CONFIG = {
   /** Maximum stamina points */
   maxStamina: 300,
 
-  /** Session duration in minutes (TESTING: 6 min instead of 7 hours) */
-  duration: 6,
+  /** Session duration in minutes (7 hours) */
+  duration: 420,
 
-  /** Total number of intervals in a session (TESTING: 6 instead of 42) */
-  totalIntervals: 6,
+  /** Total number of intervals in a session */
+  totalIntervals: 42,
 
-  /** Duration of each interval in minutes (TESTING: 1 min instead of 10 min) */
-  intervalDuration: 1,
+  /** Duration of each interval in minutes */
+  intervalDuration: 10,
 
   /** Maximum distance that can be achieved (marathon distance in km) */
   maxDistance: 42.195,
@@ -45,14 +45,13 @@ export const STAMINA_PENALTY = {
     ml500Plus: 0,
 
     /** Moderate penalty if 250-499ml consumed */
-    // ml250to499: -15,
-    ml250to499: -60,
+    ml250to499: -15,
+
     /** Heavy penalty if 1-249ml consumed */
-    // ml1to249: -30,
-      ml1to249: -120,
+    ml1to249: -30,
+
     /** Maximum penalty if 0ml consumed */
-    // ml0: -40,
-    ml0: -160,
+    ml0: -40,
   },
 
   /** Penalties for regular intervals (based on % shortage) */
@@ -61,39 +60,36 @@ export const STAMINA_PENALTY = {
     shortage0: 0,
 
     /** Small penalty if 0-25% shortage */
-    // shortage0to25: -2,
-      shortage0to25: -8,
+    shortage0to25: -2,
+
     /** Medium penalty if 25-50% shortage */
-    // shortage25to50: -4,
-      shortage25to50: -16,
+    shortage25to50: -4,
+
     /** Large penalty if 50-75% shortage */
-    // shortage50to75: -6,
-     shortage50to75: -24,
+    shortage50to75: -6,
+
     /** Maximum penalty if 75-100% shortage */
-    // shortage75to100: -6.5,
-    shortage75to100: -26,
+    shortage75to100: -6.5,
   },
 } as const;
 
 /**
  * Hydration Targets by Gender
- * TESTING MODE: Reduced proportionally for 6-min session
- * Original: 3500ml/420min = 8.33ml/min → 6min × 8.33 = 50ml
  */
 export const HYDRATION_TARGETS = {
   male: {
-    /** Total hydration target for session (TESTING: 50ml for 6min instead of 3500ml for 7h) */
-    total: 50,
+    /** Total hydration target for session (7 hours) */
+    total: 3500,
 
-    /** Required hydration in first interval (TESTING: 12ml for 1min instead of 500ml for 10min) */
-    first10min: 12,
+    /** Required hydration in first interval (10 minutes) */
+    first10min: 500,
   },
   female: {
-    /** Total hydration target for session (TESTING: 43ml for 6min instead of 3000ml for 7h) */
-    total: 43,
+    /** Total hydration target for session (7 hours) */
+    total: 3000,
 
-    /** Required hydration in first interval (TESTING: 12ml for 1min instead of 500ml for 10min) */
-    first10min: 12,
+    /** Required hydration in first interval (10 minutes) */
+    first10min: 500,
   },
 } as const;
 

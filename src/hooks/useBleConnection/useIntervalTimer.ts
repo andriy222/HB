@@ -15,8 +15,8 @@ export function useIntervalTimer(config: IntervalTimerConfig) {
 
   const sessionStartTimeRef = useRef<number | null>(null);
   const currentIntervalRef = useRef(0);
-  const intervalTimerRef = useRef<any>(null);
-  const sessionTimerRef = useRef<any>(null);
+  const intervalTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const sessionTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastIntervalCheckRef = useRef<number>(0);
 
   const calculateCurrentInterval = useCallback((): number => {

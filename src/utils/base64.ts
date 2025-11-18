@@ -16,6 +16,17 @@
  * @returns Decoded UTF-8 string
  */
 export function base64Decode(base64: string): string {
+  // Validate input
+  if (!base64 || typeof base64 !== "string") {
+    throw new Error("Base64 decode failed: input must be a non-empty string");
+  }
+
+  // Basic base64 format validation
+  const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
+  if (!base64Regex.test(base64)) {
+    throw new Error("Base64 decode failed: invalid base64 format");
+  }
+
   try {
     // Method 1: Try native atob (most common)
     if (typeof atob === "function") {
@@ -46,6 +57,15 @@ export function base64Decode(base64: string): string {
  * @returns Base64 encoded string
  */
 export function base64Encode(str: string): string {
+  // Validate input
+  if (str === null || str === undefined) {
+    throw new Error("Base64 encode failed: input cannot be null or undefined");
+  }
+
+  if (typeof str !== "string") {
+    throw new Error("Base64 encode failed: input must be a string");
+  }
+
   try {
     // Method 1: Try native btoa (most common)
     if (typeof btoa === "function") {

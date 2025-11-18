@@ -18,6 +18,7 @@ import {
 import * as ExpoSplashScreen from "expo-splash-screen";
 import { colors, fontConfig } from "../theme";
 import SplashScreen from "../UI/layout/SplashScreen/SplashScreen";
+import { ErrorBoundary } from "../components/ErrorBoundary";
 
 const theme = {
   ...MD3LightTheme,
@@ -66,15 +67,17 @@ export default function RootLayout() {
   }
 
   return (
-    <SafeAreaProvider>
-      <PaperProvider theme={theme}>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="welcome" />
-          <Stack.Screen name="(on-boarding)" />
-          <Stack.Screen name="(main)" />
-        </Stack>
-      </PaperProvider>
-    </SafeAreaProvider>
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <PaperProvider theme={theme}>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="welcome" />
+            <Stack.Screen name="(on-boarding)" />
+            <Stack.Screen name="(main)" />
+          </Stack>
+        </PaperProvider>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }

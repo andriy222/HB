@@ -28,8 +28,9 @@ export const useBleScan = () => {
   const foundTargetRef = useRef(false);
   const userInitiatedDisconnectRef = useRef(false);
   const autoReconnectAttemptsRef = useRef(0);
-  const reconnectTimerRef = useRef<any>(null);
+  const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectActiveRef = useRef(false);
+  const connectToDeviceRef = useRef<((deviceId: string) => Promise<Device | null>) | null>(null);
 
   const TARGET_NAME = BLE_DEVICE.TARGET_NAME;
   const TARGET_SERVICE = BLE_DEVICE.SERVICE_UUID.toLowerCase(); 
@@ -39,7 +40,11 @@ export const useBleScan = () => {
     return () => {
       disconnectSubRef.current?.remove();
       if (reconnectTimerRef.current) {
-        try { clearTimeout(reconnectTimerRef.current); } catch {}
+        try {
+          clearTimeout(reconnectTimerRef.current);
+        } catch (e) {
+          console.debug("Failed to clear reconnect timer on unmount:", e);
+        }
         reconnectTimerRef.current = null;
       }
       managerRef.current?.destroy();
@@ -50,7 +55,11 @@ export const useBleScan = () => {
     if (!managerRef.current) return;
     reconnectActiveRef.current = false;
     if (reconnectTimerRef.current) {
-      try { clearTimeout(reconnectTimerRef.current); } catch {}
+      try {
+        clearTimeout(reconnectTimerRef.current);
+      } catch (e) {
+        console.debug("Failed to clear reconnect timer:", e);
+      }
       reconnectTimerRef.current = null;
     }
     setDevices([]);
@@ -112,7 +121,11 @@ export const useBleScan = () => {
     // Stop any ongoing reconnect timers
     reconnectActiveRef.current = false;
     if (reconnectTimerRef.current) {
-      try { clearTimeout(reconnectTimerRef.current); } catch {}
+      try {
+        clearTimeout(reconnectTimerRef.current);
+      } catch (e) {
+        console.debug("Failed to clear reconnect timer:", e);
+      }
       reconnectTimerRef.current = null;
     }
   }, [connectedDevice]);
@@ -155,7 +168,8 @@ export const useBleScan = () => {
       }
 
       console.log(`🔄 Reconnect attempt ${attemptNumber + 1}/${BLE_TIMEOUTS.MAX_RECONNECT_ATTEMPTS}`);
-      const device = await connectToDevice(deviceId);
+      // Use ref to avoid stale closures
+      const device = connectToDeviceRef.current ? await connectToDeviceRef.current(deviceId) : null;
 
       // Only schedule next attempt if still active and connection failed
       if (!device && reconnectActiveRef.current) {
@@ -280,6 +294,11 @@ export const useBleScan = () => {
     },
     [stopScan, scheduleReconnect]
   );
+
+  // Keep ref in sync with latest connectToDevice to avoid stale closures
+  useEffect(() => {
+    connectToDeviceRef.current = connectToDevice;
+  }, [connectToDevice]);
 
   // Auto-reconnect to last device if available
   useEffect(() => {

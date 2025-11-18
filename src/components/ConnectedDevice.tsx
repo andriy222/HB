@@ -69,7 +69,10 @@ const b64ToBytes = (b64: string) => {
       for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
       return arr;
     }
-  } catch {}
+  } catch (e) {
+    // Fallback to manual decoder if atob fails
+    console.debug("atob decode failed, using fallback:", e);
+  }
   return base64DecodeToBytes(b64);
 };
 
@@ -109,12 +112,13 @@ const utf8BytesToString = (bytes: Uint8Array): string => {
 const b64ToUtf8Safe = (b64: string) => {
   try {
     // If Buffer exists (e.g., in Node), use it
-    // @ts-ignore
-    if (typeof Buffer !== "undefined") {
-      // @ts-ignore
+    if (typeof Buffer !== "undefined" && Buffer && typeof Buffer.from === "function") {
       return Buffer.from(b64, "base64").toString("utf8");
     }
-  } catch {}
+  } catch (e) {
+    // Buffer not available or decode failed, try other methods
+    console.debug("Buffer decode failed, trying other methods:", e);
+  }
   try {
     if (typeof atob === "function") {
       const bin = atob(b64);
@@ -125,11 +129,15 @@ const b64ToUtf8Safe = (b64: string) => {
         .join("");
       return decodeURIComponent(perc);
     }
-  } catch {}
+  } catch (e) {
+    // atob decode failed, try manual decoder
+    console.debug("atob UTF-8 decode failed, trying manual decoder:", e);
+  }
   try {
     const bytes = base64DecodeToBytes(b64);
     return utf8BytesToString(bytes);
-  } catch {
+  } catch (e) {
+    console.warn("All UTF-8 decode methods failed:", e);
     return "(not UTF-8)";
   }
 };
@@ -644,9 +652,12 @@ export default function ConnectedDevice({
             dlIndexBaseRef.current = idx === 0 ? 1 : 0;
           }
           const countCandidate = idx + (dlIndexBaseRef.current ?? 0);
-          const v = Math.min(411, Math.max(dlCountRef.current, countCandidate));
-          dlCountRef.current = v; // update ref synchronously to avoid END race
-          setDlCount(v);
+          // Use functional update to avoid race conditions
+          setDlCount(prev => {
+            const v = Math.min(411, Math.max(prev, countCandidate));
+            dlCountRef.current = v; // keep ref in sync
+            return v;
+          });
 
           // Parse hydration ml from the DL line and accumulate once per unique index
           if (!seenDlKeyRef.current.has(String(idx))) {
@@ -667,9 +678,12 @@ export default function ConnectedDevice({
         }
       } else {
         // Fallback: count lines
-        const v = Math.min(411, dlCountRef.current + 1);
-        dlCountRef.current = v; // update ref synchronously to avoid END race
-        setDlCount(v);
+        // Use functional update to avoid race conditions
+        setDlCount(prev => {
+          const v = Math.min(411, prev + 1);
+          dlCountRef.current = v; // keep ref in sync
+          return v;
+        });
         // Attempt to parse a trailing number as ml when no index is provided
         let ml = NaN;
         const tail = /(\d+(?:\.\d+)?)\s*(?:ml)?\s*$/i.exec(line);
