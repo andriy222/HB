@@ -6,6 +6,7 @@ import {
   setLastDeviceId,
 } from "../../utils/storage";
 import { useConnectionStore } from "../../store/connectionStore";
+import { useBleStore } from "../../store/bleStore";
 
 let mockCoaster: any = null;
 try {
@@ -22,6 +23,7 @@ const MOCK_DEVICE: Device = {
 
 export const useMockBleScan = () => {
   const updateBle = useConnectionStore((state) => state.updateBle);
+  const { hasCompletedOnboarding } = useBleStore();
   const [devices, setDevices] = useState<Device[]>([]);
   const [isScanning, setIsScanning] = useState(false);
   const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
@@ -37,8 +39,10 @@ export const useMockBleScan = () => {
   useEffect(() => {
     const savedDeviceId = getLastDeviceId();
     console.log("📱 [MOCK] Checking saved device:", savedDeviceId);
+    console.log("📱 [MOCK] Onboarding completed:", hasCompletedOnboarding);
 
-    if (savedDeviceId === MOCK_DEVICE.id) {
+    // Only auto-restore connection if onboarding is complete
+    if (savedDeviceId === MOCK_DEVICE.id && hasCompletedOnboarding) {
       console.log("📱 [MOCK] Restoring connection");
       setConnectedDevice(MOCK_DEVICE);
       setLinkUp(true);
@@ -47,8 +51,10 @@ export const useMockBleScan = () => {
         mockCoaster.generateLogs(100);
         console.log("📊 [MOCK] Generated 100 initial logs");
       }
+    } else if (savedDeviceId && !hasCompletedOnboarding) {
+      console.log("📱 [MOCK] Device saved but onboarding not complete, skipping auto-connect");
     }
-  }, []);
+  }, [hasCompletedOnboarding]);
 
   const startScan = () => {
     console.log("📱 [MOCK] Starting scan...");

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useBleStore } from '../../store/bleStore';
-import { getLastDeviceId, getSelectedGender } from '../../utils/storage';
+import { getLastDeviceId, getSelectedGender, hasSelectedGender } from '../../utils/storage';
 
 export type OnboardingStep =
   | 'complete'
@@ -29,7 +29,7 @@ export function useOnboardingStatus(): OnboardingStatus {
   useEffect(() => {
     const gender = getSelectedGender();
     const deviceId = getLastDeviceId();
-    const hasGender = !!gender && gender !== 'male';
+    const hasGender = hasSelectedGender();
     const hasDevice = !!deviceId;
 
     console.log('🔍 Onboarding status:', {
