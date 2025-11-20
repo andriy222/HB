@@ -1,10 +1,16 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Dimensions,
+} from "react-native";
 import { BluetoothOff, WifiOff, CircleOff } from "lucide-react-native";
 import { colors } from "../../theme";
 
 type AlertType = "coaster" | "bluetooth" | "internet";
-
+const { width } = Dimensions.get("window");
 interface ConnectionAlertProps {
   type: AlertType;
   title: string;
@@ -53,13 +59,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: colors.white,
+    position: "absolute",
+    backgroundColor: "#FFFFFF4F",
     borderRadius: 32,
+    left: 20,
     borderWidth: 2,
     borderColor: colors.black,
     paddingVertical: 16,
     paddingHorizontal: 20,
     marginBottom: 12,
+    zIndex: 3,
+    width: width * 0.9,
+    height: 62,
   },
   leftSection: {
     flexDirection: "row",
@@ -85,8 +96,6 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     borderWidth: 2,
     borderColor: colors.black,
-    paddingVertical: 8,
-    paddingHorizontal: 24,
   },
   buttonText: {
     fontSize: 16,

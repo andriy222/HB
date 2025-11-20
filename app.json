@@ -66,6 +66,7 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "owner": "andrii",
     "extra": {
       "eas": {
         "projectId": "b4f1d2b2-877e-408f-b345-5635f69c30ce"

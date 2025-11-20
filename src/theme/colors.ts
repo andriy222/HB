@@ -3,7 +3,8 @@ export const colors = {
   primary: "#C4B2F9", 
   black: "#000000",
   white: "#FFFFFF",
-
+  transparent: "transparent",
+  
   // Status colors
   error: "#FF0000",
   errorBG: "#FFD2D2",
