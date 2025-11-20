@@ -66,7 +66,7 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "owner": "andrii00",
+    "owner": "andrii-00",
     "runtimeVersion": {
       "policy": "appVersion"
     }
