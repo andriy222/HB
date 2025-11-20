@@ -32,7 +32,7 @@ export const styles = StyleSheet.create({
     borderColor: colors.black,
   },
   outline: {
-    backgroundColor: "transparent",
+    backgroundColor: colors.transparent,
     borderColor: colors.black,
   },
   big: {

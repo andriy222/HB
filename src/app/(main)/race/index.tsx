@@ -1,11 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import AuthBackground from "../../../UI/layout/backgrounds/AuthBackground";
-import {
-  clearStorage,
-  debugStorage,
-  storage,
-  useBleStore,
-} from "../../../store/bleStore";
+import { clearStorage, debugStorage, storage } from "../../../store/bleStore";
 import Podium from "../../../components/Podium/Podium";
 import BottomNavigation from "../../../components/BottomNavigation/BottomNavigation";
 import SpriteAnimator from "../../../components/SpriteAnimator/SpriteAnimator";
@@ -196,9 +191,9 @@ const Main = () => {
             )}
           </View>
           {/* {session.isActive && typeof __DEV__ !== "undefined" && __DEV__ && ( */}
-          <PaperButton onPress={handleMockDrink} variant="big">
+          {/* <PaperButton onPress={handleMockDrink} variant="big">
             +100ml (Test)
-          </PaperButton>
+          </PaperButton> */}
           {/* )} */}
         </View>
       </View>

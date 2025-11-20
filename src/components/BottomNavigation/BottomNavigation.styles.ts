@@ -1,4 +1,5 @@
 import { StyleSheet } from "react-native";
+import { colors } from "../../theme";
 
 export const styles = StyleSheet.create({
   container: {
@@ -11,7 +12,7 @@ export const styles = StyleSheet.create({
     justifyContent: "space-around",
     alignItems: "center",
     paddingVertical: 12,
-    backgroundColor: "transparent", 
+    backgroundColor: colors.transparent, 
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
   },
