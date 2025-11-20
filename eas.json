@@ -39,6 +39,17 @@
       "android": {
         "buildType": "apk"
       }
+    },
+    "adhoc": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "simulator": false,
+        "enterpriseProvisioning": "adhoc",
+        "buildConfiguration": "Release"
+      }
     }
   },
   "submit": {
