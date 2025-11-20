@@ -76,18 +76,27 @@ export function useConnectionMonitor(): ConnectionMonitorHook {
       updateInternet(isOnline);
     });
 
-    // Fallback polling every 3 seconds to catch missed NetInfo events
+    // Fallback polling every 2 seconds to catch missed NetInfo events
     // This is especially important on iOS simulator where NetInfo can be unreliable
-    const pollInterval = setInterval(() => {
-      NetInfo.fetch().then((netState) => {
+    const pollInterval = setInterval(async () => {
+      console.log('🌐 Starting polling check...');
+      try {
+        // Force refresh NetInfo state before fetching
+        await NetInfo.refresh();
+        const netState = await NetInfo.fetch();
         const isOnline = netState.isConnected ?? false;
-        console.log('🌐 NetInfo polling check:', {
+        console.log('🌐 NetInfo polling check (after refresh):', {
           isConnected: netState.isConnected,
+          isInternetReachable: netState.isInternetReachable,
+          type: netState.type,
+          details: netState.details,
           computedOnline: isOnline
         });
         updateInternet(isOnline);
-      });
-    }, 3000);
+      } catch (error) {
+        console.error('🌐 NetInfo polling error:', error);
+      }
+    }, 2000);
 
     return () => {
       console.log('🌐 Cleaning up NetInfo listener');
