@@ -5,10 +5,8 @@
   },
   "build": {
     "base": {
-      "node": "20.18.0",
-      "env": {
-        "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
-      }
+      "node": "20.19.4",
+      "npm": "10.9.2"
     },
     "development": {
       "extends": "base",
