@@ -1,13 +1,11 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { View, StyleSheet, Alert, Linking, Text } from "react-native";
 import { useRouter } from "expo-router";
-import { useConnectionStatus } from "../../hooks/useConnectionStatus/useConnectionStatus";
 import { useGlobalConnectionMonitor } from "../../hooks/useConnectionMonitor";
 import ConnectionAlert from "./ConnectionAlert";
 
 export default function ConnectionAlerts() {
   const router = useRouter();
-  const status = useConnectionStatus();
   const monitor = useGlobalConnectionMonitor();
 
   const handleCoasterConnect = () => {
@@ -37,9 +35,9 @@ export default function ConnectionAlerts() {
   };
 
   const hasIssues =
-    !status.coaster.isConnected ||
+    !monitor.state.coaster.isConnected ||
     !monitor.state.ble.isConnected ||
-    !status.internet.isConnected;
+    !monitor.state.internet.isConnected;
 
   if (!hasIssues) {
     return null;
@@ -47,12 +45,12 @@ export default function ConnectionAlerts() {
 
   return (
     <View style={styles.container}>
-      {!status.coaster.isConnected && (
+      {!monitor.state.coaster.isConnected && (
         <View>
           <ConnectionAlert
             type="coaster"
             title="Coaster is OFF"
-            message={status.coaster.message}
+            message="Please connect your Coaster"
             onConnect={handleCoasterConnect}
           />
           {monitor.state.ble.isReconnecting && (
@@ -74,11 +72,11 @@ export default function ConnectionAlerts() {
         />
       )}
 
-      {!status.internet.isConnected && (
+      {!monitor.state.internet.isConnected && (
         <ConnectionAlert
           type="internet"
           title="Internet is OFF"
-          message={status.internet.message}
+          message="Please connect your internet"
           onConnect={handleInternetConnect}
         />
       )}

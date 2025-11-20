@@ -45,15 +45,27 @@ const initialState: ConnectionState = {
 export const useConnectionStore = create<ConnectionStore>((set, get) => ({
   ...initialState,
 
-  // Actions
-  updateBle: (isConnected, isReconnecting) =>
-    set({ ble: { isConnected, isReconnecting } }),
+  // Actions - with guards to prevent unnecessary updates
+  updateBle: (isConnected, isReconnecting) => {
+    const current = get().ble;
+    if (current.isConnected !== isConnected || current.isReconnecting !== isReconnecting) {
+      set({ ble: { isConnected, isReconnecting } });
+    }
+  },
 
-  updateInternet: (isConnected) =>
-    set({ internet: { isConnected } }),
+  updateInternet: (isConnected) => {
+    const current = get().internet;
+    if (current.isConnected !== isConnected) {
+      set({ internet: { isConnected } });
+    }
+  },
 
-  updateCoaster: (isConnected) =>
-    set({ coaster: { isConnected } }),
+  updateCoaster: (isConnected) => {
+    const current = get().coaster;
+    if (current.isConnected !== isConnected) {
+      set({ coaster: { isConnected } });
+    }
+  },
 
   reset: () => set(initialState),
 

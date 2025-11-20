@@ -65,12 +65,15 @@ export function useConnectionMonitor(): ConnectionMonitorHook {
     };
   }, [updateInternet]);
 
+  // Memoize state object to prevent unnecessary re-renders
+  const state = useMemo(() => ({
+    ble,
+    internet,
+    coaster,
+  }), [ble, internet, coaster]);
+
   return {
-    state: {
-      ble,
-      internet,
-      coaster,
-    },
+    state,
     hasAllConnections,
     missingConnections,
     canStartRace,
