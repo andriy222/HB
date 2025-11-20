@@ -5,6 +5,8 @@
  * for environments where atob/btoa are not available.
  */
 
+import { logger } from "./logger";
+
 /**
  * Decode Base64 to UTF-8 string
  *
@@ -30,7 +32,7 @@ export function base64Decode(base64: string): string {
     // Method 2: Fallback - manual base64 decode
     return manualBase64Decode(base64);
   } catch (error) {
-    console.error("Failed to decode base64:", error);
+    logger.error("Failed to decode base64:", error);
     throw new Error(`Base64 decode failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
@@ -62,7 +64,7 @@ export function base64Encode(str: string): string {
     // Method 2: Fallback - manual base64 encode
     return manualBase64Encode(str);
   } catch (error) {
-    console.error("Failed to encode base64:", error);
+    logger.error("Failed to encode base64:", error);
     throw new Error(`Base64 encode failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }

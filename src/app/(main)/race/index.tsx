@@ -26,6 +26,7 @@ import {
 } from "../../../storage/appStorage";
 
 import { useGlobalConnectionMonitor } from "../../../hooks/useConnectionMonitor";
+import { logger } from "../../../utils/logger";
 
 const trophy = require("../../../../assets/win.png");
 const { width } = Dimensions.get("window");
@@ -102,10 +103,10 @@ const Main = () => {
 
   function handleStart() {
     if (session.isActive) {
-      console.log("⚠️ Session already active");
+      logger.warn("⚠️ Session already active");
       return;
     }
-    console.log("🏁 Starting new race...");
+    logger.info("🏁 Starting new race...");
     clearLastRaceDistance();
     setLastRaceDistanceState(0);
     session.start(selectedGender);
@@ -113,10 +114,10 @@ const Main = () => {
 
   function handleMockDrink() {
     if (!session.isActive) {
-      console.log("⚠️ No active session");
+      logger.warn("⚠️ No active session");
       return;
     }
-    console.log("💧 Mock: Adding 100ml");
+    logger.debug("💧 Mock: Adding 100ml");
     session.recordDrink(100);
   }
 

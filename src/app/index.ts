@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useRouter } from "expo-router";
 import { useOnboardingStatus } from "../hooks/useOnboardingStatus/useOnboardingStatus";
+import { logger } from "../utils/logger";
 export default function Index() {
   const router = useRouter()
   const { nextRoute } = useOnboardingStatus();
@@ -12,14 +13,14 @@ export default function Index() {
     try {
       const isFirstTime =  true
       if (isFirstTime) {
-        console.log("👋 First time, going to /welcome");
+        logger.info("👋 First time, going to /welcome");
         router.replace("/welcome");
       } else {
-        console.log("🏠 Redirecting to", nextRoute);
+        logger.info("🏠 Redirecting to", nextRoute);
         router.replace(nextRoute);
       }
     } catch (error) {
-      console.error("Error checking route:", error);
+      logger.error("Error checking route:", error);
       router.replace("/welcome");
     }
   };

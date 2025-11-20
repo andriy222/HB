@@ -12,6 +12,7 @@ import { useIntervalTimer } from "./useIntervalTimer";
 import { clearSession, loadSession, saveSession } from "../../utils/sessionPerssistance";
 import { Gender } from "../../utils/storage";
 import { updateBestRunIfBetter } from "../../storage/appStorage";
+import { logger } from "../../utils/logger";
 
 /**
  * Main session management hook
@@ -28,7 +29,7 @@ export function useSession() {
    */
   const intervalTimer = useIntervalTimer({
     onIntervalComplete: (index) => {
-      console.log(`⏱️ Auto-completed interval ${index}`);
+      logger.debug(`⏱️ Auto-completed interval ${index}`);
 
       // Ensure interval exists (create with 0ml if user didn't drink)
       if (!session) return;
@@ -43,13 +44,13 @@ export function useSession() {
           0
         );
         intervalsRef.current[index] = interval;
-        console.log(`💧 Interval ${index} auto-created with 0ml (no hydration)`);
+        logger.debug(`💧 Interval ${index} auto-created with 0ml (no hydration)`);
       }
 
       updateSessionState();
     },
     onSessionComplete: () => {
-      console.log("⏱️ Session time elapsed → auto-ending session");
+      logger.debug("⏱️ Session time elapsed → auto-ending session");
       end();
     },
     isActive: session?.isActive ?? false,
@@ -70,7 +71,7 @@ export function useSession() {
     const distance = calculateDistance(stamina, elapsed);
     const avatar = getAvatarState(stamina);
 
-    console.log(
+    logger.debug(
       `📊 Stamina update: ${stamina} (${intervalsRef.current.length} intervals, ` +
       `penalties: [${intervalsRef.current.map(i => i.penalty).join(', ')}])`
     );
@@ -122,7 +123,7 @@ export function useSession() {
     setSession(newSession);
     setAvatarState("normal");
 
-    console.log(`🏁 Session started: ${gender}`);
+    logger.info(`🏁 Session started: ${gender}`);
   }, []);
 
   /**
@@ -145,7 +146,7 @@ export function useSession() {
         0
       );
       intervalsRef.current[intervalIndex] = interval;
-      console.log(`📝 Created interval ${intervalIndex} (required: ${interval.requiredMl}ml)`);
+      logger.debug(`📝 Created interval ${intervalIndex} (required: ${interval.requiredMl}ml)`);
     }
 
     const oldPenalty = interval.penalty;
@@ -160,7 +161,7 @@ export function useSession() {
       ? calculateFirstPenalty(interval.actualMl, interval.requiredMl)
       : calculateRegularPenalty(interval.requiredMl, interval.actualMl);
 
-    console.log(
+    logger.debug(
       `💧 +${ml}ml → Interval ${intervalIndex} | ` +
       `${oldMl}ml→${interval.actualMl}ml/${interval.requiredMl}ml | ` +
       `penalty: ${oldPenalty}→${interval.penalty}`
@@ -197,7 +198,7 @@ export function useSession() {
     // Clear from storage
     clearSession();
 
-    console.log(`🏁 Session complete | Duration: ${sessionDuration}min | Distance: ${session.totalDistance.toFixed(2)}km${isNewBest ? " 🏆 NEW BEST!" : ""}`);
+    logger.info(`🏁 Session complete | Duration: ${sessionDuration}min | Distance: ${session.totalDistance.toFixed(2)}km${isNewBest ? " 🏆 NEW BEST!" : ""}`);
   }, [session]);
 
   /**
@@ -243,7 +244,7 @@ export function useSession() {
 
       if (saved.isActive) {
         const elapsed = Math.floor((Date.now() - saved.startTime) / 1000);
-        console.log(`💾 Restoring active session (${elapsed}s elapsed, ${saved.intervals.length} intervals)`);
+        logger.info(`💾 Restoring active session (${elapsed}s elapsed, ${saved.intervals.length} intervals)`);
         setSession(saved);
         intervalsRef.current = saved.intervals;
         currentIntervalRef.current = saved.intervals.length;

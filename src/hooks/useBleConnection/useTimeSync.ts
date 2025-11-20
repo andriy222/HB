@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
+import { logger } from "../../utils/logger";
 
 /**
  * Time Sync Manager
@@ -45,7 +46,7 @@ export function useTimeSync(options?: {
    */
   const syncWithNTP = useCallback(async (): Promise<boolean> => {
     try {
-      console.log("🕐 Syncing time with NTP...");
+      logger.debug("🕐 Syncing time with NTP...");
 
       const startTime = Date.now();
 
@@ -84,7 +85,7 @@ export function useTimeSync(options?: {
           const drift = estimatedServerTime - endTime;
           deviceTimeOffsetRef.current = drift;
 
-          console.log(
+          logger.info(
             `🕐 Time synced | Drift: ${drift}ms | ` +
             `Verified: ${Math.abs(drift) < driftToleranceMs}`
           );
@@ -98,14 +99,14 @@ export function useTimeSync(options?: {
 
           return true;
         } catch (e) {
-          console.warn(`Failed to sync with ${server}:`, e);
+          logger.warn(`Failed to sync with ${server}:`, e);
           continue;
         }
       }
 
       throw new Error("All NTP servers unavailable");
     } catch (e) {
-      console.warn("⚠️ NTP sync failed, using device clock");
+      logger.warn("⚠️ NTP sync failed, using device clock");
 
       setState({
         isVerified: false,

@@ -6,7 +6,7 @@ import { useReconnectHandler } from "./useRecconectHandler";
 import { useBLEWrapper } from "../MockBleProvider/useBleWrapper";
 import { getSelectedGender } from "../../utils/storage";
 import { BLE_DEVICE, BLE_PROTOCOL, BLE_TIMEOUTS } from "../../constants/bleConstants";
-
+import { logger } from "../../utils/logger";
 
 /**
  * Coordinator: BLE + Session Logic + Protocol
@@ -65,11 +65,11 @@ export function useCoasterSession(config: CoasterSessionConfig) {
   // Reconnect handler
   const reconnect = useReconnectHandler(isConnected, {
     onReconnect: () => {
-      console.log("🔄 Backfill: requesting all logs");
+      logger.debug("🔄 Backfill: requesting all logs");
       requestLogs();
     },
     onBackfillComplete: () => {
-      console.log("🔄 Backfill complete");
+      logger.debug("🔄 Backfill complete");
     },
     sessionStartTime: session.session?.startTime ?? null,
     lastDLTimestamp: lastDLTimestampRef.current,
@@ -78,10 +78,10 @@ export function useCoasterSession(config: CoasterSessionConfig) {
   // Protocol handler
   const protocol = useProtocolHandler({
     onDataStart: () => {
-      console.log("📊 Data transfer started");
+      logger.debug("📊 Data transfer started");
     },
     onDataComplete: (count) => {
-      console.log(`📊 Data complete: ${count} logs`);
+      logger.info(`📊 Data complete: ${count} logs`);
 
       // Auto-sync if we got 0 logs or >= max expected logs
       if ((count === 0 || count >= BLE_PROTOCOL.MAX_EXPECTED_LOGS) && !autoSyncRef.current) {
@@ -92,15 +92,15 @@ export function useCoasterSession(config: CoasterSessionConfig) {
       }
     },
     onGoalAck: () => {
-      console.log("✅ GOAL confirmed, sending SYNC...");
+      logger.info("✅ GOAL confirmed, sending SYNC...");
       sendTimeSync();
     },
     onSyncAck: () => {
-      console.log("✅ SYNC complete, session ready");
+      logger.info("✅ SYNC complete, session ready");
       autoSyncRef.current = false;
     },
     onError: (msg) => {
-      console.error(`❌ Coaster error: ${msg}`);
+      logger.error(`❌ Coaster error: ${msg}`);
     },
   });
 
@@ -140,7 +140,7 @@ export function useCoasterSession(config: CoasterSessionConfig) {
       protocol.reset();
       autoSyncRef.current = false;
 
-      console.log(`🏁 Session started (${gender})`);
+      logger.info(`🏁 Session started (${gender})`);
     }
   }, [isConnected, device, ble.isReady]);
 
@@ -152,7 +152,7 @@ export function useCoasterSession(config: CoasterSessionConfig) {
     const ok = await ble.sendCommand(cmd);
     if (ok) {
       protocol.expectGoalAck();
-      console.log(`🎯 GOAL: ${ml}ml / ${min}min`);
+      logger.info(`🎯 GOAL: ${ml}ml / ${min}min`);
     }
     return ok;
   }, [ble, protocol]);
@@ -172,7 +172,7 @@ export function useCoasterSession(config: CoasterSessionConfig) {
     const ok = await ble.sendCommand(cmd);
     if (ok) {
       protocol.expectSyncAck();
-      console.log(`⏰ SYNC: ${ts}`);
+      logger.info(`⏰ SYNC: ${ts}`);
     }
     return ok;
   }, [ble, protocol]);
@@ -181,7 +181,7 @@ export function useCoasterSession(config: CoasterSessionConfig) {
     protocol.startDataTransfer();
     const ok = await ble.sendCommand("GET ALL\r\n");
     if (ok) {
-      console.log("📥 GET ALL");
+      logger.info("📥 GET ALL");
       ble.resetSeenIndices();
     }
     return ok;

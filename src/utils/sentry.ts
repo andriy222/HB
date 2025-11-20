@@ -6,6 +6,7 @@
  */
 
 import * as Sentry from "@sentry/react-native";
+import { logger } from "./logger";
 
 /**
  * Initialize Sentry
@@ -20,7 +21,7 @@ export function initSentry(
   environment: string = __DEV__ ? "development" : "production"
 ) {
   if (!dsn) {
-    console.warn("⚠️ Sentry DSN not configured. Error tracking disabled.");
+    logger.warn("⚠️ Sentry DSN not configured. Error tracking disabled.");
     return;
   }
 
@@ -65,7 +66,7 @@ export function initSentry(
     },
   });
 
-  console.log("✅ Sentry initialized");
+  logger.info("✅ Sentry initialized");
 }
 
 /**
@@ -108,7 +109,7 @@ export function captureBLEError(
   };
 
   captureError(error, context);
-  console.error(`[BLE Error] ${operation}:`, error);
+  logger.error(`[BLE Error] ${operation}:`, error);
 }
 
 /**

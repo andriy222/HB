@@ -4,6 +4,7 @@ import { Dimensions, StyleSheet, Text, View, Image } from "react-native";
 import { colors, textPresets } from "../../../theme";
 import { useConnectionStatus } from "../../../hooks/useConnectionStatus/useConnectionStatus";
 import { useEffect } from "react";
+import { logger } from "../../../utils/logger";
 
 const { width, height } = Dimensions.get("window");
 const coaster = require("../../../../assets/coaster.png");
@@ -12,7 +13,7 @@ const CoasterStatus = () => {
   const status = useConnectionStatus();
   const isConnected = status.coaster.isConnected;
   useEffect(() => {
-    console.log("isCOnnected", isConnected);
+    logger.debug("isCOnnected", isConnected);
   }, [isConnected]);
 
   return (

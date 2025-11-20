@@ -6,6 +6,7 @@ import {
   AVATAR_THRESHOLDS,
   SPEED_CONFIG,
 } from "../../constants/sessionConstants";
+import { logger } from "../../utils/logger";
 
 /**
  * Calculate penalty for first interval
@@ -22,11 +23,11 @@ import {
 export function calculateFirstPenalty(ml: number, target: number): number {
   // Validate inputs
   if (target <= 0) {
-    console.warn('calculateFirstPenalty: target must be > 0, got', target);
+    logger.warn('calculateFirstPenalty: target must be > 0, got', target);
     return STAMINA_PENALTY.first.ml0;
   }
   if (ml < 0) {
-    console.warn('calculateFirstPenalty: ml must be >= 0, got', ml);
+    logger.warn('calculateFirstPenalty: ml must be >= 0, got', ml);
     return STAMINA_PENALTY.first.ml0;
   }
 
@@ -60,7 +61,7 @@ export function calculateFirstPenalty(ml: number, target: number): number {
 export function calculateRegularPenalty(required: number, actual: number): number {
   // Validate inputs
   if (required <= 0) {
-    console.warn('calculateRegularPenalty: required must be > 0, got', required);
+    logger.warn('calculateRegularPenalty: required must be > 0, got', required);
     return 0;
   }
 

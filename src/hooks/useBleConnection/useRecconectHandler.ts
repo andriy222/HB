@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from "react";
 import { BLE_TIMEOUTS } from "../../constants/bleConstants";
+import { logger } from "../../utils/logger";
 
 /**
  * Reconnect Handler with Backfill
@@ -56,7 +57,7 @@ export function useReconnectHandler(
       const missedTime = now - (lastReconnectRef.current ?? now);
       const missedMinutes = missedTime / (60 * 1000);
 
-      console.log(
+      logger.info(
         `🔌 Reconnected after ${missedMinutes.toFixed(1)}min | ` +
         `Count: ${reconnectCountRef.current + 1}`
       );
@@ -65,7 +66,7 @@ export function useReconnectHandler(
 
       // Check if we need backfill
       if (sessionStartTime && missedMinutes > 1) {
-        console.log("🔄 Requesting backfill...");
+        logger.info("🔄 Requesting backfill...");
 
         // Give BLE a moment to stabilize
         setTimeout(() => {
@@ -73,7 +74,7 @@ export function useReconnectHandler(
         }, BLE_TIMEOUTS.BACKFILL_STABILIZATION_DELAY);
       }
     } else {
-      console.log("🔌 Initial connection");
+      logger.info("🔌 Initial connection");
     }
 
     lastReconnectRef.current = now;
@@ -83,7 +84,7 @@ export function useReconnectHandler(
    * Handle disconnect event
    */
   const handleDisconnect = useCallback(() => {
-    console.log("🔌 Connection lost");
+    logger.info("🔌 Connection lost");
     // Store disconnect time for calculating missed duration
     lastReconnectRef.current = Date.now();
   }, []);
