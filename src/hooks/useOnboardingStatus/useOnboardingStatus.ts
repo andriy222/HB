@@ -48,6 +48,11 @@ export function useOnboardingStatus(): OnboardingStatus {
       nextRoute = '/(main)/race';
       currentStep = 'complete';
       isComplete = true;
+    } else if (hasGender && hasDevice && !hasCompletedOnboarding) {
+      // User has gender and device but hasn't completed onboarding
+      // Should go to start screen to complete the connection
+      nextRoute = '/(on-boarding)/start';
+      currentStep = 'need-connection';
     } else if (hasGender && !hasDevice) {
       nextRoute = '/(on-boarding)/start';
       currentStep = 'need-connection';
