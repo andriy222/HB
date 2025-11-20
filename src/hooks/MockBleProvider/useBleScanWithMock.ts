@@ -12,8 +12,6 @@ const isSimulator = Platform.OS === 'ios'
 export const useBleScanWithMock = () => {
   const shouldUseMock = BLE_CONFIG.USE_MOCK_BLE || isSimulator;
 
-  console.log(`🔧 BLE Scan Mode: ${shouldUseMock ? 'MOCK' : 'REAL'}`);
-
   if (shouldUseMock) {
     return useMockBleScan();
   }
