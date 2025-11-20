@@ -92,16 +92,16 @@ const styles = StyleSheet.create({
     paddingTop: 16,
   },
   reconnectingBanner: {
-    backgroundColor: '#f59e0b',
+    backgroundColor: "#f59e0b",
     padding: 12,
     borderRadius: 8,
     marginTop: 8,
     marginHorizontal: 16,
   },
   reconnectingText: {
-    color: '#ffffff',
+    color: "#ffffff",
     fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
+    fontWeight: "600",
+    textAlign: "center",
   },
 });
