@@ -5,8 +5,7 @@
   },
   "build": {
     "base": {
-      "node": "20.19.4",
-      "npm": "10.9.2"
+      "node": "20.19.4"
     },
     "development": {
       "extends": "base",
