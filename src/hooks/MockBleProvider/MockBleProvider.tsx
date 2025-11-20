@@ -7,6 +7,7 @@ import {
 } from "../../utils/storage";
 import { useConnectionStore } from "../../store/connectionStore";
 import { useBleStore } from "../../store/bleStore";
+import logger from "../../utils/logger";
 
 let mockCoaster: any = null;
 try {
@@ -38,53 +39,55 @@ export const useMockBleScan = () => {
 
   useEffect(() => {
     const savedDeviceId = getLastDeviceId();
-    console.log("📱 [MOCK] Checking saved device:", savedDeviceId);
-    console.log("📱 [MOCK] Onboarding completed:", hasCompletedOnboarding);
+    logger.ble("📱 [MOCK] Checking saved device:", savedDeviceId);
+    logger.ble("📱 [MOCK] Onboarding completed:", hasCompletedOnboarding);
 
     // Only auto-restore connection if onboarding is complete
     if (savedDeviceId === MOCK_DEVICE.id && hasCompletedOnboarding) {
-      console.log("📱 [MOCK] Restoring connection");
+      logger.ble("📱 [MOCK] Restoring connection");
       setConnectedDevice(MOCK_DEVICE);
       setLinkUp(true);
 
       if (mockCoaster && !mockCoaster.getState().connected) {
         mockCoaster.generateLogs(100);
-        console.log("📊 [MOCK] Generated 100 initial logs");
+        logger.ble("📊 [MOCK] Generated 100 initial logs");
       }
     } else if (savedDeviceId && !hasCompletedOnboarding) {
-      console.log("📱 [MOCK] Device saved but onboarding not complete, skipping auto-connect");
+      logger.ble(
+        "📱 [MOCK] Device saved but onboarding not complete, skipping auto-connect"
+      );
     }
   }, [hasCompletedOnboarding]);
 
   const startScan = () => {
-    console.log("📱 [MOCK] Starting scan...");
+    logger.ble("📱 [MOCK] Starting scan...");
     setIsScanning(true);
 
     setTimeout(() => {
-      console.log("📱 [MOCK] Device found");
+      logger.ble("📱 [MOCK] Device found");
       setDevices([MOCK_DEVICE]);
       setIsScanning(false);
     }, 2000);
   };
 
   const stopScan = () => {
-    console.log("📱 [MOCK] Stopping scan");
+    logger.ble("📱 [MOCK] Stopping scan");
     setIsScanning(false);
   };
 
   const connectToDevice = async (deviceId: string) => {
-    console.log("📱 [MOCK] Connecting to:", deviceId);
+    logger.ble("📱 [MOCK] Connecting to:", deviceId);
     setIsConnecting(true);
     setConnectingDeviceId(deviceId);
 
     return new Promise<Device | null>((resolve) => {
       setTimeout(async () => {
-        console.log("📱 [MOCK] Connected!");
+        logger.ble("📱 [MOCK] Connected!");
 
         // Setup mockCoaster with data
         if (mockCoaster) {
           mockCoaster.generateLogs(100);
-          console.log("📊 [MOCK] Generated 100 logs");
+          logger.ble("📊 [MOCK] Generated 100 logs");
         }
 
         setConnectedDevice(MOCK_DEVICE);
@@ -93,7 +96,7 @@ export const useMockBleScan = () => {
         setConnectingDeviceId(null);
 
         setLastDeviceId(MOCK_DEVICE.id);
-        console.log("💾 [MOCK] Saved device ID");
+        logger.ble("💾 [MOCK] Saved device ID");
 
         resolve(MOCK_DEVICE);
       }, 1500);
@@ -101,7 +104,7 @@ export const useMockBleScan = () => {
   };
 
   const disconnect = async () => {
-    console.log("📱 [MOCK] Disconnecting");
+    logger.ble("📱 [MOCK] Disconnecting");
 
     if (mockCoaster) {
       mockCoaster.disconnect();
@@ -111,7 +114,7 @@ export const useMockBleScan = () => {
     setLinkUp(false);
 
     clearLastDeviceId();
-    console.log("💾 [MOCK] Cleared device ID");
+    logger.ble("💾 [MOCK] Cleared device ID");
   };
 
   useEffect(() => {

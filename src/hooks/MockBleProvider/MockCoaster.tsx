@@ -10,6 +10,8 @@
  * - Battery simulation
  */
 
+import logger from "../../utils/logger";
+
 export class MockCoaster {
   private logs: string[] = [];
   private battery = 85;
@@ -22,7 +24,7 @@ export class MockCoaster {
   connect(onData: (line: string) => void) {
     this.isConnected = true;
     this.dataCallback = onData;
-    console.log("🔌 [MOCK] Coaster connected");
+    logger.ble("🔌 [MOCK] Coaster connected");
   }
 
   /**
@@ -31,14 +33,14 @@ export class MockCoaster {
   disconnect() {
     this.isConnected = false;
     this.dataCallback = undefined;
-    console.log("🔌 [MOCK] Coaster disconnected");
+    logger.ble("🔌 [MOCK] Coaster disconnected");
   }
 
   /**
    * Handle command from app
    */
   handleCommand(command: string) {
-    console.log("📥 [MOCK] Received command:", command);
+    logger.ble("📥 [MOCK] Received command:", command);
 
     if (command.startsWith("GET ALL")) {
       this.sendAllLogs();
@@ -64,7 +66,7 @@ export class MockCoaster {
       this.logs.push(`DL ${i} ${ml} ${timestamp}`);
     }
 
-    console.log(`📊 [MOCK] Generated ${count} logs`);
+    logger.ble(`📊 [MOCK] Generated ${count} logs`);
   }
 
   /**
@@ -105,7 +107,7 @@ export class MockCoaster {
     this.logs.push(log);
     this.sendLine(log);
 
-    console.log(`💧 [MOCK] Simulated drink: ${ml}ml`);
+    logger.ble(`💧 [MOCK] Simulated drink: ${ml}ml`);
   }
 
   /**
