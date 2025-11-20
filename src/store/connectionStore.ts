@@ -56,6 +56,7 @@ export const useConnectionStore = create<ConnectionStore>((set, get) => ({
   updateInternet: (isConnected) => {
     const current = get().internet;
     if (current.isConnected !== isConnected) {
+      console.log('🌐 Internet connection changed:', current.isConnected, '->', isConnected);
       set({ internet: { isConnected } });
     }
   },

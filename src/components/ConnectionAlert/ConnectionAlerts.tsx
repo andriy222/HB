@@ -1,12 +1,22 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { View, StyleSheet, Alert, Linking, Text } from "react-native";
 import { useRouter } from "expo-router";
-import { useGlobalConnectionMonitor } from "../../hooks/useConnectionMonitor";
+import { useConnectionStore } from "../../store/connectionStore";
 import ConnectionAlert from "./ConnectionAlert";
 
 export default function ConnectionAlerts() {
   const router = useRouter();
-  const monitor = useGlobalConnectionMonitor();
+
+  // Subscribe directly to primitive values for reliable updates
+  const bleIsConnected = useConnectionStore((state) => state.ble.isConnected);
+  const bleIsReconnecting = useConnectionStore((state) => state.ble.isReconnecting);
+  const internetIsConnected = useConnectionStore((state) => state.internet.isConnected);
+  const coasterIsConnected = useConnectionStore((state) => state.coaster.isConnected);
+
+  // Debug logging
+  useEffect(() => {
+    console.log('🔔 ConnectionAlerts render - Internet:', internetIsConnected, 'BLE:', bleIsConnected, 'Coaster:', coasterIsConnected);
+  }, [internetIsConnected, bleIsConnected, coasterIsConnected]);
 
   const handleCoasterConnect = () => {
     router.push("/(on-boarding)/start");
@@ -34,10 +44,7 @@ export default function ConnectionAlerts() {
     );
   };
 
-  const hasIssues =
-    !monitor.state.coaster.isConnected ||
-    !monitor.state.ble.isConnected ||
-    !monitor.state.internet.isConnected;
+  const hasIssues = !coasterIsConnected || !bleIsConnected || !internetIsConnected;
 
   if (!hasIssues) {
     return null;
@@ -45,7 +52,7 @@ export default function ConnectionAlerts() {
 
   return (
     <View style={styles.container}>
-      {!monitor.state.coaster.isConnected && (
+      {!coasterIsConnected && (
         <View>
           <ConnectionAlert
             type="coaster"
@@ -53,7 +60,7 @@ export default function ConnectionAlerts() {
             message="Please connect your Coaster"
             onConnect={handleCoasterConnect}
           />
-          {monitor.state.ble.isReconnecting && (
+          {bleIsReconnecting && (
             <View style={styles.reconnectingBanner}>
               <Text style={styles.reconnectingText}>
                 🔄 Переконнект до Bluetooth...
@@ -63,7 +70,7 @@ export default function ConnectionAlerts() {
         </View>
       )}
 
-      {!monitor.state.ble.isConnected && (
+      {!bleIsConnected && (
         <ConnectionAlert
           type="bluetooth"
           title="Bluetooth is OFF"
@@ -72,7 +79,7 @@ export default function ConnectionAlerts() {
         />
       )}
 
-      {!monitor.state.internet.isConnected && (
+      {!internetIsConnected && (
         <ConnectionAlert
           type="internet"
           title="Internet is OFF"
