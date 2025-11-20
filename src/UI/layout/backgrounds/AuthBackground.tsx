@@ -49,7 +49,7 @@ export default function AuthBackground({
             <ScrollView
               contentContainerStyle={[
                 styles.scrollContent,
-                isMain ? null : { flex: 1 },
+                // isMain ? null : { flex: 1 },
               ]}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}

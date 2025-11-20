@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useBleStore } from '../../store/bleStore';
-import { getLastDeviceId, getSelectedGender } from '../../utils/storage';
+import { getLastDeviceId, getSelectedGender, hasSelectedGender } from '../../utils/storage';
 
 export type OnboardingStep =
   | 'complete'
@@ -29,7 +29,7 @@ export function useOnboardingStatus(): OnboardingStatus {
   useEffect(() => {
     const gender = getSelectedGender();
     const deviceId = getLastDeviceId();
-    const hasGender = !!gender && gender !== 'male';
+    const hasGender = hasSelectedGender();
     const hasDevice = !!deviceId;
 
     console.log('🔍 Onboarding status:', {
@@ -48,6 +48,11 @@ export function useOnboardingStatus(): OnboardingStatus {
       nextRoute = '/(main)/race';
       currentStep = 'complete';
       isComplete = true;
+    } else if (hasGender && hasDevice && !hasCompletedOnboarding) {
+      // User has gender and device but hasn't completed onboarding
+      // Should go to start screen to complete the connection
+      nextRoute = '/(on-boarding)/start';
+      currentStep = 'need-connection';
     } else if (hasGender && !hasDevice) {
       nextRoute = '/(on-boarding)/start';
       currentStep = 'need-connection';

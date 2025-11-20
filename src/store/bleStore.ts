@@ -8,12 +8,15 @@ export const storage = createMMKV();
 const mmkvStorage = {
   getItem: (name: string) => {
     const value = storage.getString(name);
+    logger.debug(`📦 MMKV getItem("${name}"):`, value);
     return value ?? null;
   },
   setItem: (name: string, value: string) => {
+    logger.debug(`📦 MMKV setItem("${name}"):`, value);
     storage.set(name, value);
   },
   removeItem: (name: string) => {
+    logger.debug(`📦 MMKV removeItem("${name}")`);
     storage.remove(name);
   },
 };
@@ -41,16 +44,22 @@ interface BleState {
 
 export const useBleStore = create<BleState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       hasCompletedOnboarding: false,
-      
-      setOnboardingComplete: () => set({ 
-        hasCompletedOnboarding: true,
-      }),
 
-      reset: () => set({
-        hasCompletedOnboarding: false,
-      }),
+      setOnboardingComplete: () => {
+        logger.info("✅ Setting onboarding complete");
+        set({ hasCompletedOnboarding: true });
+        setTimeout(() => {
+          logger.debug("📦 After set, onboarding status:", get().hasCompletedOnboarding);
+          debugStorage();
+        }, 100);
+      },
+
+      reset: () => {
+        logger.info("🔄 Resetting onboarding");
+        set({ hasCompletedOnboarding: false });
+      },
     }),
     {
       name: 'ble-onboarding',

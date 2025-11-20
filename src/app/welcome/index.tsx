@@ -18,8 +18,8 @@ export default function Welcome() {
   }, [isComplete, nextRoute]);
 
   const handleContinue = () => {
-    logger.debug("▶️ Continue pressed, going to", nextRoute);
-    router.push(nextRoute);
+    logger.debug("▶️ Continue pressed, going to /(on-boarding)/choose");
+    router.push("/(on-boarding)/choose");
   };
 
   return (

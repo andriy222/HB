@@ -4,26 +4,12 @@ import { useOnboardingStatus } from "../hooks/useOnboardingStatus/useOnboardingS
 import { logger } from "../utils/logger";
 export default function Index() {
   const router = useRouter()
-  const { nextRoute } = useOnboardingStatus();
-  useEffect(() => {
-    checkInitialRoute();
-  }, []);
+  const { nextRoute, isComplete } = useOnboardingStatus();
 
-  const checkInitialRoute = async () => {
-    try {
-      const isFirstTime =  true
-      if (isFirstTime) {
-        logger.info("👋 First time, going to /welcome");
-        router.replace("/welcome");
-      } else {
-        logger.info("🏠 Redirecting to", nextRoute);
-        router.replace(nextRoute);
-      }
-    } catch (error) {
-      logger.error("Error checking route:", error);
-      router.replace("/welcome");
-    }
-  };
+  useEffect(() => {
+    logger.info("🔍 Initial route check - isComplete:", isComplete, "nextRoute:", nextRoute);
+    router.replace(nextRoute);
+  }, [nextRoute]);
 
   return null;
 }

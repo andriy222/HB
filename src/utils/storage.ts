@@ -27,6 +27,11 @@ export function getSelectedGender(): Gender {
   return value === "female" ? "female" : "male";
 }
 
+export function hasSelectedGender(): boolean {
+  const value = mmkvStorage.getString(STORAGE_KEYS.GENDER);
+  return value !== null && value !== undefined;
+}
+
 export function setSelectedGender(g: Gender): void {
   mmkvStorage.set(STORAGE_KEYS.GENDER, g);
 }
