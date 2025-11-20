@@ -9,11 +9,7 @@
  * BLE Configuration
  */
 export const BLE_CONFIG = {
-  /**
-   * Global BLE mock mode flag
-   * Set to true to use mock BLE (simulated coaster)
-   * Set to false to use real BLE hardware
-   */
+
   USE_MOCK_BLE: false,
 } as const;
 

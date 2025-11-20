@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Platform } from 'react-native';
 import { useBleScanWithMock } from '../MockBleProvider/useBleScanWithMock';
 import { useGlobalConnectionMonitor } from '../useConnectionMonitor';
@@ -36,7 +36,8 @@ export function useConnectionStatus(): ConnectionStatus {
     updateCoaster(isCoasterConnected);
   }, [linkUp, connectedDevice, updateCoaster]);
 
-  return {
+  // Memoize the return object to prevent recreating on every render
+  return useMemo(() => ({
     coaster: {
       isConnected: monitor.state.coaster.isConnected,
       message: 'Please connect your Coaster',
@@ -49,5 +50,5 @@ export function useConnectionStatus(): ConnectionStatus {
       isConnected: monitor.state.internet.isConnected,
       message: 'Please connect your internet',
     },
-  };
+  }), [monitor.state.coaster.isConnected, monitor.state.internet.isConnected, bluetoothEnabled]);
 }
