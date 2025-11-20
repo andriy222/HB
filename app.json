@@ -51,14 +51,6 @@
         "ACCESS_FINE_LOCATION",
         "android.permission.BLUETOOTH",
         "android.permission.BLUETOOTH_ADMIN",
-        "android.permission.BLUETOOTH_CONNECT",
-        "BLUETOOTH",
-        "BLUETOOTH_ADMIN",
-        "BLUETOOTH_SCAN",
-        "BLUETOOTH_CONNECT",
-        "ACCESS_FINE_LOCATION",
-        "android.permission.BLUETOOTH",
-        "android.permission.BLUETOOTH_ADMIN",
         "android.permission.BLUETOOTH_CONNECT"
       ],
       "package": "com.d.yuhymenko.hybittest"
@@ -69,6 +61,12 @@
     "owner": "andrii-00",
     "runtimeVersion": {
       "policy": "appVersion"
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "678bc770-aaf9-4a70-a288-905d2c78a55b"
+      }
     }
   }
 }
