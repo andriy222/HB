@@ -113,6 +113,13 @@ const Main = () => {
       logger.warn("⚠️ Session already active");
       return;
     }
+
+    // Check if all connections are available before starting
+    if (!monitor.canStartRace) {
+      logger.warn("⚠️ Cannot start race - missing connections:", monitor.missingConnections);
+      return;
+    }
+
     logger.info("🏁 Starting new race...");
     clearLastRaceDistance();
     setLastRaceDistanceState(0);
@@ -185,6 +192,7 @@ const Main = () => {
                 onPress={handleStart}
                 variant="big"
                 style={styles.btn}
+                disabled={!monitor.canStartRace}
               >
                 Start new Race
               </PaperButton>

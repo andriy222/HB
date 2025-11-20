@@ -38,7 +38,7 @@ export default function ConnectionAlerts() {
 
   const hasIssues =
     !status.coaster.isConnected ||
-    !status.bluetooth.isEnabled ||
+    !monitor.state.ble.isConnected ||
     !status.internet.isConnected;
 
   if (!hasIssues) {
@@ -65,11 +65,11 @@ export default function ConnectionAlerts() {
         </View>
       )}
 
-      {!status.bluetooth.isEnabled && (
+      {!monitor.state.ble.isConnected && (
         <ConnectionAlert
           type="bluetooth"
           title="Bluetooth is OFF"
-          message={status.bluetooth.message}
+          message="Please connect your bluetooth"
           onConnect={handleBluetoothConnect}
         />
       )}
