@@ -41,7 +41,8 @@ const Start = () => {
     logger.debug("📱 Current device:", connectedDevice?.name);
 
     if (linkUp && connectedDevice) {
-      logger.info("✅ Connected, going to main");
+      logger.info("✅ Connected, completing onboarding and going to main");
+      setOnboardingComplete();
       router.push("/(main)/race");
     } else {
       logger.warn("⚠️ Not connected, showing modal");

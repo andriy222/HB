@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import AuthBackground from "../../../UI/layout/backgrounds/AuthBackground";
-import { clearStorage, debugStorage, storage } from "../../../store/bleStore";
+import { debugStorage, storage } from "../../../store/bleStore";
 import Podium from "../../../components/Podium/Podium";
 import BottomNavigation from "../../../components/BottomNavigation/BottomNavigation";
 import SpriteAnimator from "../../../components/SpriteAnimator/SpriteAnimator";
