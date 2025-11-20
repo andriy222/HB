@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import AuthBackground from "../../../UI/layout/backgrounds/AuthBackground";
-import { debugStorage, storage } from "../../../store/bleStore";
+import { clearStorage, debugStorage, storage, useBleStore } from "../../../store/bleStore";
 import Podium from "../../../components/Podium/Podium";
 import BottomNavigation from "../../../components/BottomNavigation/BottomNavigation";
 import SpriteAnimator from "../../../components/SpriteAnimator/SpriteAnimator";
@@ -27,11 +27,15 @@ import {
 
 import { useGlobalConnectionMonitor } from "../../../hooks/useConnectionMonitor";
 import { logger } from "../../../utils/logger";
+import { useRouter } from "expo-router";
+import { mmkvStorage } from "../../../storage/appStorage";
 
 const trophy = require("../../../../assets/win.png");
 const { width } = Dimensions.get("window");
 
 const Main = () => {
+  const router = useRouter();
+  const { reset: resetBleStore } = useBleStore();
   const [selectedGender, setSelectedGender] = useState<Gender>("male");
   const [bestRun, setBestRun] = useState<number>(0);
   const [lastRaceDistance, setLastRaceDistanceState] = useState<number>(0);
@@ -113,12 +117,25 @@ const Main = () => {
   }
 
   function handleMockDrink() {
-    if (!session.isActive) {
-      logger.warn("⚠️ No active session");
-      return;
-    }
-    logger.debug("💧 Mock: Adding 100ml");
-    session.recordDrink(100);
+    logger.info("🗑️ Clearing all storage and resetting app...");
+    debugStorage();
+
+    // Clear MMKV storage (includes ble-onboarding)
+    clearStorage();
+
+    // Clear AsyncStorage data (gender, device, etc)
+    mmkvStorage.clearAll();
+
+    // Reset zustand store
+    resetBleStore();
+
+    debugStorage();
+    logger.info("✅ Storage cleared, redirecting to welcome...");
+
+    // Redirect to welcome screen
+    setTimeout(() => {
+      router.replace("/welcome");
+    }, 500);
   }
 
   return (
