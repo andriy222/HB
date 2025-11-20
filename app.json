@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "hybit-test",
-    "slug": "hybit-test",
+    "name": "hybit",
+    "slug": "hybit",
     "version": "1.0.0",
-    "scheme": "hybit-test",
+    "scheme": "hybit",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -34,7 +34,7 @@
         ],
         "ITSAppUsesNonExemptEncryption": false
       },
-      "bundleIdentifier": "com.d.yuhymenko.hybittest"
+      "bundleIdentifier": "com.hybit.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -53,7 +53,7 @@
         "android.permission.BLUETOOTH_ADMIN",
         "android.permission.BLUETOOTH_CONNECT"
       ],
-      "package": "com.d.yuhymenko.hybittest"
+      "package": "com.hybit.app"
     },
     "web": {
       "favicon": "./assets/favicon.png"
