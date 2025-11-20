@@ -1,0 +1,149 @@
+name: Build Mobile Apps
+
+on:
+  push:
+    branches:
+      - master
+      - main
+  pull_request:
+    branches:
+      - master
+      - main
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Platform to build'
+        required: true
+        type: choice
+        options:
+          - all
+          - android
+          - ios
+      profile:
+        description: 'Build profile'
+        required: true
+        type: choice
+        options:
+          - production
+          - preview
+
+jobs:
+  build:
+    name: Build Apps
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Determine build profile
+        id: build-config
+        run: |
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            echo "profile=preview" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "profile=${{ github.event.inputs.profile }}" >> $GITHUB_OUTPUT
+          else
+            echo "profile=production" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build Android App
+        run: |
+          eas build --platform android --profile ${{ steps.build-config.outputs.profile }} --non-interactive --no-wait
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build iOS App
+        if: github.event_name == 'workflow_dispatch' && (github.event.inputs.platform == 'all' || github.event.inputs.platform == 'ios')
+        run: |
+          eas build --platform ios --profile ${{ steps.build-config.outputs.profile }} --non-interactive --no-wait
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+  build-and-download:
+    name: Build and Download Artifacts
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+
+    strategy:
+      matrix:
+        platform: [android, ios]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Determine build profile
+        id: build-config
+        run: |
+          if [ "${{ github.event.inputs.profile }}" != "" ]; then
+            echo "profile=${{ github.event.inputs.profile }}" >> $GITHUB_OUTPUT
+          else
+            echo "profile=production" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build ${{ matrix.platform }} App
+        if: |
+          github.event.inputs.platform == 'all' ||
+          github.event.inputs.platform == matrix.platform
+        run: |
+          eas build --platform ${{ matrix.platform }} --profile ${{ steps.build-config.outputs.profile }} --non-interactive --wait
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Download build artifact
+        if: |
+          github.event.inputs.platform == 'all' ||
+          github.event.inputs.platform == matrix.platform
+        run: |
+          # Get the latest build URL
+          BUILD_URL=$(eas build:list --platform=${{ matrix.platform }} --limit=1 --json | jq -r '.[0].artifacts.buildUrl')
+
+          # Download the artifact
+          if [ "${{ matrix.platform }}" == "android" ]; then
+            curl -L -o app-${{ matrix.platform }}-${{ steps.build-config.outputs.profile }}.apk "$BUILD_URL"
+          else
+            curl -L -o app-${{ matrix.platform }}-${{ steps.build-config.outputs.profile }}.ipa "$BUILD_URL"
+          fi
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Upload artifact
+        if: |
+          github.event.inputs.platform == 'all' ||
+          github.event.inputs.platform == matrix.platform
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-${{ matrix.platform }}-${{ steps.build-config.outputs.profile }}
+          path: |
+            *.apk
+            *.ipa
+          retention-days: 30
