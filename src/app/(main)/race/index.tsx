@@ -113,12 +113,13 @@ const Main = () => {
   }
 
   function handleMockDrink() {
-    if (!session.isActive) {
-      logger.warn("⚠️ No active session");
-      return;
-    }
-    logger.debug("💧 Mock: Adding 100ml");
-    session.recordDrink(100);
+    // if (!session.isActive) {
+    //   logger.warn("⚠️ No active session");
+    //   return;
+    // }
+    // logger.debug("💧 Mock: Adding 100ml");
+    // session.recordDrink(100);
+    clearStorage();
   }
 
   return (
@@ -176,11 +177,11 @@ const Main = () => {
               </Text>
             )}
           </View>
-          {/* {session.isActive && typeof __DEV__ !== "undefined" && __DEV__ && (
-            <PaperButton onPress={handleMockDrink} variant="big">
-              +100ml (Test)
-            </PaperButton>
-          )} */}
+          {/* {session.isActive && typeof __DEV__ !== "undefined" && __DEV__ && ( */}
+          <PaperButton onPress={handleMockDrink} variant="big">
+            +100ml (Test)
+          </PaperButton>
+          {/* )} */}
         </View>
       </View>
     </AuthBackground>

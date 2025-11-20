@@ -47,7 +47,10 @@ export default function AuthBackground({
         >
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <ScrollView
-              contentContainerStyle={styles.scrollContent}
+              contentContainerStyle={[
+                styles.scrollContent,
+                isMain ? null : { flex: 1 },
+              ]}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
               bounces={false}
