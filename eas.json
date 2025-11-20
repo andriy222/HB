@@ -21,6 +21,7 @@
     "preview": {
       "extends": "base",
       "distribution": "internal",
+      "credentialsSource": "remote",
       "android": {
         "buildType": "apk"
       },
@@ -32,6 +33,7 @@
     "production": {
       "extends": "base",
       "autoIncrement": true,
+      "credentialsSource": "remote",
       "android": {
         "buildType": "app-bundle"
       },

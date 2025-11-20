@@ -1,9 +1,4 @@
-/**
- * Centralized Logger
- *
- * Replaces console.log/warn/error throughout the app with structured logging.
- * Supports different log levels and can be disabled in production.
- */
+
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'ble';
 
