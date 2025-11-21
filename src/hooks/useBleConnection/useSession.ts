@@ -127,14 +127,46 @@ export function useSession() {
   }, []);
 
   /**
-   * Record hydration (add ml to current interval)
+   * Calculate interval index from coaster timestamp
+   * Uses session start time and timestamp to determine which 10-min interval
+   *
+   * PRD: "app aligns to 10-minute scoring windows" using coaster timestamps
    */
-  const recordDrink = useCallback((ml: number) => {
+  const getIntervalFromTimestamp = useCallback((timestamp: Date | undefined, sessionStartTime: number): number => {
+    if (!timestamp) {
+      // Fallback to current time if no timestamp provided
+      return intervalTimer.getCurrentInterval();
+    }
+
+    const eventTime = timestamp.getTime();
+    const elapsed = eventTime - sessionStartTime;
+
+    // If timestamp is before session start, use interval 0
+    if (elapsed < 0) {
+      logger.warn(`⚠️ Timestamp ${timestamp.toISOString()} is before session start`);
+      return 0;
+    }
+
+    const intervalIndex = Math.floor(elapsed / (SESSION_CONFIG.intervalDuration * 60 * 1000));
+
+    // Clamp to valid range (0 to totalIntervals-1)
+    return Math.min(Math.max(intervalIndex, 0), SESSION_CONFIG.totalIntervals - 1);
+  }, [intervalTimer]);
+
+  /**
+   * Record hydration (add ml to interval based on coaster timestamp)
+   *
+   * PRD: "Coaster streams time-stamped intake; app aligns to 10-minute scoring windows"
+   *
+   * @param ml - Amount of liquid consumed
+   * @param timestamp - Timestamp from coaster (determines which interval)
+   */
+  const recordDrink = useCallback((ml: number, timestamp?: Date) => {
     if (!session || !session.isActive) return;
 
-    // Use timer's current interval (always up-to-date)
-    const intervalIndex = intervalTimer.getCurrentInterval();
-    currentIntervalRef.current = intervalIndex;
+    // Calculate interval from coaster timestamp (not current time!)
+    const intervalIndex = getIntervalFromTimestamp(timestamp, session.startTime);
+    currentIntervalRef.current = Math.max(currentIntervalRef.current, intervalIndex);
 
     // Get or create interval
     let interval = intervalsRef.current[intervalIndex];
@@ -162,14 +194,15 @@ export function useSession() {
       : calculateRegularPenalty(interval.requiredMl, interval.actualMl);
 
     logger.debug(
-      `💧 +${ml}ml → Interval ${intervalIndex} | ` +
-      `${oldMl}ml→${interval.actualMl}ml/${interval.requiredMl}ml | ` +
+      `💧 +${ml}ml → Interval ${intervalIndex}` +
+      (timestamp ? ` @ ${timestamp.toLocaleTimeString()}` : ' (no timestamp)') +
+      ` | ${oldMl}ml→${interval.actualMl}ml/${interval.requiredMl}ml | ` +
       `penalty: ${oldPenalty}→${interval.penalty}`
     );
 
     // Update session state
     updateSessionState();
-  }, [session, intervalTimer, updateSessionState]);
+  }, [session, getIntervalFromTimestamp, updateSessionState]);
 
   /**
    * End session

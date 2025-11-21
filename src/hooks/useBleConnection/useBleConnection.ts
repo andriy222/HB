@@ -14,7 +14,10 @@ interface BLEConfig {
 interface ParsedDLLine {
   index: number;
   ml: number;
+  /** Timestamp from coaster in YYMMDDhhmmss format */
   timestamp?: string;
+  /** Parsed timestamp as Date object */
+  timestampDate?: Date;
   raw: string;
 }
 
@@ -47,7 +50,25 @@ export function useBLEConnection(
   }, []);
 
   /**
-   * Parse DL line: "DL <index> <ml>"
+   * Parse coaster timestamp (YYMMDDhhmmss) to Date
+   */
+  const parseCoasterTimestamp = useCallback((ts: string): Date | undefined => {
+    if (!ts || ts.length !== 12) return undefined;
+
+    const year = 2000 + parseInt(ts.slice(0, 2), 10);
+    const month = parseInt(ts.slice(2, 4), 10) - 1; // 0-indexed
+    const day = parseInt(ts.slice(4, 6), 10);
+    const hour = parseInt(ts.slice(6, 8), 10);
+    const minute = parseInt(ts.slice(8, 10), 10);
+    const second = parseInt(ts.slice(10, 12), 10);
+
+    const date = new Date(year, month, day, hour, minute, second);
+    return isNaN(date.getTime()) ? undefined : date;
+  }, []);
+
+  /**
+   * Parse DL line: "DL <index> <ml> [timestamp]"
+   * Timestamp format: YYMMDDhhmmss (e.g., 241121143000 = 2024-11-21 14:30:00)
    */
   const parseDLLine = useCallback((line: string): ParsedDLLine | null => {
     if (!line.startsWith(PROTOCOL_COMMANDS.DL)) return null;
@@ -73,8 +94,17 @@ export function useBLEConnection(
 
     if (!Number.isFinite(ml)) return null;
 
-    return { index, ml, raw: line };
-  }, []);
+    // Parse timestamp if present (YYMMDDhhmmss format)
+    let timestamp: string | undefined;
+    let timestampDate: Date | undefined;
+    const tsMatch = REGEX_PATTERNS.DL_TIMESTAMP.exec(line);
+    if (tsMatch) {
+      timestamp = tsMatch[1];
+      timestampDate = parseCoasterTimestamp(timestamp);
+    }
+
+    return { index, ml, timestamp, timestampDate, raw: line };
+  }, [parseCoasterTimestamp]);
 
   const parseDEVLine = useCallback((line: string): number | null => {
     if (!line.startsWith(PROTOCOL_COMMANDS.DEV)) return null;
