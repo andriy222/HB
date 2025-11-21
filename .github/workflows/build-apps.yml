@@ -124,8 +124,14 @@ jobs:
           github.event.inputs.platform == 'all' ||
           github.event.inputs.platform == matrix.platform
         run: |
-          # Get the latest build URL
-          BUILD_URL=$(eas build:list --platform=${{ matrix.platform }} --limit=1 --json | jq -r '.[0].artifacts.buildUrl')
+          # Get the latest build URL with better error handling
+          BUILD_JSON=$(eas build:list --platform=${{ matrix.platform }} --limit=1 --json 2>/dev/null || echo "[]")
+          BUILD_URL=$(echo "$BUILD_JSON" | jq -r '.[0].artifacts.buildUrl // empty')
+
+          if [ -z "$BUILD_URL" ] || [ "$BUILD_URL" == "null" ]; then
+            echo "No build artifact URL found. Build may still be processing."
+            exit 1
+          fi
 
           # Download the artifact
           if [ "${{ matrix.platform }}" == "android" ]; then
