@@ -28,9 +28,6 @@
       "infoPlist": {
         "NSBluetoothAlwaysUsageDescription": "This app uses Bluetooth to connect to your device.",
         "UIBackgroundModes": [
-          "bluetooth-central",
-          "bluetooth-central",
-          "bluetooth-central",
           "bluetooth-central"
         ],
         "ITSAppUsesNonExemptEncryption": false

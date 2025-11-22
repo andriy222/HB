@@ -39,26 +39,25 @@ export function useCoasterSession(config: CoasterSessionConfig) {
 
   /**
    * Handle BLE data - using ref to avoid dependency changes
+   * Now uses coaster timestamp for accurate interval calculation
    */
-  const handleBLEData = useCallback((data: { index: number; ml: number }) => {
+  const handleBLEData = useCallback((data: { index: number; ml: number; timestampDate?: Date }) => {
     const currentSession = sessionRef.current;
     if (!currentSession.isActive) return;
 
-    const intervalIndex = mapDLToInterval(data.index);
-
-    if (intervalIndex < 0 || intervalIndex > 41) {
-      console.warn(`⚠️ Interval ${intervalIndex} out of range`);
-      return;
-    }
+    // Use coaster timestamp if available, otherwise fall back to Date.now()
+    const eventTime = data.timestampDate?.getTime() ?? Date.now();
 
     // Update last DL timestamp for reconnect detection
-    lastDLTimestampRef.current = Date.now();
+    lastDLTimestampRef.current = eventTime;
 
-    // Record hydration
-    currentSession.recordDrink(data.ml);
+    // Record hydration with coaster timestamp for accurate interval calculation
+    currentSession.recordDrink(data.ml, data.timestampDate);
 
+    const intervalIndex = mapDLToInterval(data.index);
     console.log(
-      `💧 DL ${data.index} → Interval ${intervalIndex}: +${data.ml.toFixed(1)}ml`
+      `💧 DL ${data.index} → Interval ${intervalIndex}: +${data.ml.toFixed(1)}ml` +
+      (data.timestampDate ? ` @ ${data.timestampDate.toLocaleTimeString()}` : ' (no timestamp)')
     );
   }, [mapDLToInterval]);
 
@@ -129,10 +128,34 @@ export function useCoasterSession(config: CoasterSessionConfig) {
   );
 
   /**
-   * Auto-start session
+   * Auto-start or restore session on BLE connect
+   *
+   * PRD: "Backgrounding/quit: coaster keeps logging; on reconnect,
+   * the app re-syncs time and backfills before applying penalties"
    */
   useEffect(() => {
-    if (isConnected && device && !sessionStartedRef.current && ble.isReady) {
+    if (!isConnected || !device || !ble.isReady) return;
+
+    const currentSession = sessionRef.current;
+
+    // Check if we have an active restored session
+    if (currentSession.session?.isActive && currentSession.session?.startTime) {
+      // Session was restored from storage - request backfill
+      if (!sessionStartedRef.current) {
+        sessionStartedRef.current = true;
+        ble.resetSeenIndices();
+        protocol.reset();
+        autoSyncRef.current = false;
+
+        logger.info(`🔄 Session restored, requesting backfill...`);
+
+        // Request all logs from coaster to catch up on missed data
+        setTimeout(() => {
+          requestLogs();
+        }, BLE_TIMEOUTS.BACKFILL_STABILIZATION_DELAY);
+      }
+    } else if (!sessionStartedRef.current) {
+      // No active session - start a new one
       const gender = getSelectedGender();
       session.start(gender);
       sessionStartedRef.current = true;
@@ -140,7 +163,7 @@ export function useCoasterSession(config: CoasterSessionConfig) {
       protocol.reset();
       autoSyncRef.current = false;
 
-      logger.info(`🏁 Session started (${gender})`);
+      logger.info(`🏁 New session started (${gender})`);
     }
   }, [isConnected, device, ble.isReady]);
 

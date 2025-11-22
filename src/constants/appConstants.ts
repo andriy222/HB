@@ -11,10 +11,12 @@ export const REGEX_PATTERNS = {
   /** Line separators for BLE data parsing */
   LINE_SEPARATORS: /\r\n|\n|\r/,
 
-  /** DL line pattern: "DL <index> <ml>" */
+  /** DL line pattern: "DL <index> <ml> [timestamp]" */
   DL_INDEX: /^DL\s+(\d+)/,
   DL_VALUE: /^DL\s+\d+\s+([0-9]+(?:\.[0-9]+)?)/,
   DL_LAST_NUMBER: /(\d+(?:\.\d+)?)\s*(?:ml)?\s*$/i,
+  /** Timestamp pattern: YYMMDDhhmmss (12 digits) */
+  DL_TIMESTAMP: /(\d{12})\s*$/,
 
   /** DEV line pattern: "DEV <battery_percentage>" */
   DEV_BATTERY: /^DEV\s+(\d{1,3})/,
