@@ -200,13 +200,26 @@ describe('staminaEngine', () => {
       expect(calculateDistance(150, elapsedMin)).toBeCloseTo(expectedDistance, 3);
     });
 
-    it('should calculate minimum 20% speed distance with 0 stamina', () => {
+    it('should stop distance accumulation when exhausted (stamina < 33%)', () => {
       const elapsedMin = 3; // Half of 6-min session
-      const expectedBase = (elapsedMin / duration) * maxDistance;
-      const speedRatio = 0.2; // Minimum speed at 0 stamina
-      const expectedDistance = expectedBase * speedRatio;
+      const previousDistance = 10.5; // Distance achieved before exhaustion
 
-      expect(calculateDistance(0, elapsedMin)).toBeCloseTo(expectedDistance, 3);
+      // When exhausted (stamina < 99), distance should freeze at previous value
+      expect(calculateDistance(98, elapsedMin, previousDistance)).toBe(previousDistance);
+      expect(calculateDistance(50, elapsedMin, previousDistance)).toBe(previousDistance);
+      expect(calculateDistance(0, elapsedMin, previousDistance)).toBe(previousDistance);
+    });
+
+    it('should allow distance to increase when not exhausted (stamina >= 33%)', () => {
+      const elapsedMin = 3; // Half of 6-min session
+      const previousDistance = 5.0;
+
+      // At 33%+ stamina (99+), distance should still accumulate
+      const distance99 = calculateDistance(99, elapsedMin, previousDistance);
+      expect(distance99).toBeGreaterThan(previousDistance);
+
+      const distance150 = calculateDistance(150, elapsedMin, previousDistance);
+      expect(distance150).toBeGreaterThan(previousDistance);
     });
 
     it('should never exceed max distance', () => {

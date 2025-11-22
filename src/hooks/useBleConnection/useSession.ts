@@ -68,16 +68,21 @@ export function useSession() {
   updateSessionStateRef.current = () => {
     const stamina = calculateStamina(intervalsRef.current);
     const elapsed = intervalTimer.getElapsedMinutes();
-    const distance = calculateDistance(stamina, elapsed);
-    const avatar = getAvatarState(stamina);
-
-    logger.debug(
-      `📊 Stamina update: ${stamina} (${intervalsRef.current.length} intervals, ` +
-      `penalties: [${intervalsRef.current.map(i => i.penalty).join(', ')}])`
-    );
 
     setSession((prevSession) => {
       if (!prevSession) return null;
+
+      // Pass previous distance to maintain it when exhausted
+      const distance = calculateDistance(stamina, elapsed, prevSession.totalDistance);
+      const avatar = getAvatarState(stamina);
+
+      logger.debug(
+        `📊 Stamina update: ${stamina} (${intervalsRef.current.length} intervals, ` +
+        `penalties: [${intervalsRef.current.map(i => i.penalty).join(', ')}])`
+      );
+
+      setAvatarState(avatar);
+
       return {
         ...prevSession,
         currentStamina: stamina,
@@ -85,7 +90,6 @@ export function useSession() {
         intervals: [...intervalsRef.current],
       };
     });
-    setAvatarState(avatar);
   };
 
   const updateSessionState = useCallback(() => {
