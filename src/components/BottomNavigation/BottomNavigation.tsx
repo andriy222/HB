@@ -1,7 +1,7 @@
 import React from "react";
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Droplet, Home, Users } from "lucide-react-native";
+import { Droplet, Home, Users, FlaskConical } from "lucide-react-native";
 import { useRouter, usePathname } from "expo-router";
 import NavigationButton from "../../UI/NavigationButton/NavigationButton";
 import { styles } from "./BottomNavigation.styles";
@@ -22,6 +22,12 @@ export default function BottomNavigation() {
         icon={Home}
         isActive={pathname.includes("/race")}
         onPress={() => router.push("/(main)/race")}
+      />
+
+      <NavigationButton
+        icon={FlaskConical}
+        isActive={pathname.includes("/test-ble")}
+        onPress={() => router.push("/(main)/test-ble")}
       />
 
       <NavigationButton
