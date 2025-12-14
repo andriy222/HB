@@ -6,20 +6,38 @@ import {
   ScrollView,
   Dimensions,
   TouchableOpacity,
+  Platform,
 } from "react-native";
 import AuthBackground from "../../../UI/layout/backgrounds/AuthBackground";
 import BottomNavigation from "../../../components/BottomNavigation/BottomNavigation";
 import { useSession } from "../../../hooks/useBleConnection/useSession";
 import { useCoasterConnection } from "../../../store/connectionStore";
 import { textPresets } from "../../../theme";
-import { SESSION_CONFIG } from "../../../constants/sessionConstants";
+import { SESSION_CONFIG, BLE_CONFIG } from "../../../constants/sessionConstants";
+import { useBleScanWithMock } from "../../../hooks/MockBleProvider/useBleScanWithMock";
 
 const { width } = Dimensions.get("window");
 
 const TestBLE = () => {
   const session = useSession();
   const coasterConnection = useCoasterConnection();
+  const { connectedDevice } = useBleScanWithMock();
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Detect if running on simulator
+  const isSimulator = Platform.OS === 'ios'
+    ? __DEV__
+    : Platform.OS === 'android'
+    ? false
+    : true;
+
+  // Check why mock might be active
+  const mockReasons = [];
+  if (BLE_CONFIG.USE_MOCK_BLE) mockReasons.push("USE_MOCK_BLE = true");
+  if (!connectedDevice) mockReasons.push("No device connected");
+  if (isSimulator) mockReasons.push("Running on simulator");
+
+  const isMockActive = mockReasons.length > 0;
 
   // Update current time every second
   useEffect(() => {
@@ -66,6 +84,58 @@ const TestBLE = () => {
           <Text style={styles.subtitle}>
             Current Time: {currentTime.toLocaleTimeString()}
           </Text>
+        </View>
+
+        {/* BLE Mode Diagnostics */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            🔧 BLE Mode Diagnostics
+          </Text>
+          <View style={[
+            styles.card,
+            isMockActive && { backgroundColor: "#FFF3E0" }
+          ]}>
+            <StatusRow
+              label="Mode"
+              value={isMockActive ? "🧪 MOCK BLE" : "📡 REAL BLE"}
+              valueColor={isMockActive ? "#FF9800" : "#4CAF50"}
+            />
+            <StatusRow
+              label="Platform"
+              value={`${Platform.OS} ${Platform.Version}`}
+              small
+            />
+            <StatusRow
+              label="USE_MOCK_BLE"
+              value={BLE_CONFIG.USE_MOCK_BLE ? "true" : "false"}
+              valueColor={BLE_CONFIG.USE_MOCK_BLE ? "#FF9800" : "#666"}
+              small
+            />
+            <StatusRow
+              label="Device Connected"
+              value={connectedDevice ? `✅ ${connectedDevice.name || 'Unknown'}` : "❌ None"}
+              valueColor={connectedDevice ? "#4CAF50" : "#F44336"}
+              small
+            />
+            <StatusRow
+              label="Is Simulator"
+              value={isSimulator ? "Yes" : "No"}
+              valueColor={isSimulator ? "#FF9800" : "#666"}
+              small
+            />
+            {mockReasons.length > 0 && (
+              <View style={{ marginTop: 12, padding: 12, backgroundColor: "#FFE0B2", borderRadius: 8 }}>
+                <Text style={{ fontSize: 14, fontWeight: "600", marginBottom: 8, color: "#E65100" }}>
+                  ⚠️ Mock BLE Active Because:
+                </Text>
+                {mockReasons.map((reason, i) => (
+                  <Text key={i} style={{ fontSize: 12, color: "#E65100", marginLeft: 8 }}>
+                    • {reason}
+                  </Text>
+                ))}
+              </View>
+            )}
+          </View>
         </View>
 
         {/* Connection Status */}
