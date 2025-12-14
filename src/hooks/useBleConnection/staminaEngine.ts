@@ -105,22 +105,38 @@ export function calculateStamina(intervals: IntervalData[]): number {
  * Speed calculation:
  * - speedRatio = MIN_SPEED_RATIO + (MAX_SPEED_RATIO - MIN_SPEED_RATIO) × (stamina / 300)
  * - speedRatio = 0.2 + 0.8 × (stamina / 300)
+ * - IMPORTANT: When exhausted (stamina < 33%), running stops (speedRatio = 0)
  *
  * Examples:
  * - Stamina 300 (100%): speedRatio = 1.0 (full speed)
  * - Stamina 150 (50%): speedRatio = 0.6 (60% speed)
- * - Stamina 0 (0%): speedRatio = 0.2 (20% speed, minimum)
+ * - Stamina 99+ (33%+): speedRatio = 0.2+ (minimum speed)
+ * - Stamina < 99 (< 33%): speedRatio = 0 (exhausted, running stops)
  *
  * @param stamina - Current stamina (0-300)
  * @param elapsedMin - Minutes elapsed since session start
+ * @param previousDistance - Previous distance to maintain when exhausted
  * @returns Distance in km (0-42.195)
  */
-export function calculateDistance(stamina: number, elapsedMin: number): number {
+export function calculateDistance(
+  stamina: number,
+  elapsedMin: number,
+  previousDistance: number = 0
+): number {
   const ratio = stamina / SESSION_CONFIG.maxStamina;
+
+  // When exhausted (< 33% stamina), running stops completely
+  if (ratio <= AVATAR_THRESHOLDS.TIRED) {
+    return previousDistance; // Freeze distance at exhausted point
+  }
+
   const speed = SPEED_CONFIG.MIN_SPEED_RATIO +
     (SPEED_CONFIG.MAX_SPEED_RATIO - SPEED_CONFIG.MIN_SPEED_RATIO) * ratio;
   const base = (elapsedMin / SESSION_CONFIG.duration) * SESSION_CONFIG.maxDistance;
-  return Math.min(base * speed, SESSION_CONFIG.maxDistance);
+  const newDistance = Math.min(base * speed, SESSION_CONFIG.maxDistance);
+
+  // Return max of previous and new distance to prevent distance from going backwards
+  return Math.max(previousDistance, newDistance);
 }
 
 /**
