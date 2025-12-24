@@ -113,11 +113,11 @@ const Start = () => {
 const styles = StyleSheet.create({
   container: {
     ...mixins.flexCenterColumn,
-    gap: height * 0.05,
+    gap: height * 0.03,
   },
   textContainer: {
     ...mixins.flexCenterColumn,
-    gap: height * 0.025,
+    gap: height * 0.015,
   },
   avatarContainer: {
     ...mixins.flexCenterColumn,
@@ -125,12 +125,12 @@ const styles = StyleSheet.create({
   },
   avatar: {
     position: "relative",
-    top: height * 0.05,
+    top: height * 0.03,
     zIndex: 1,
   },
   bottomAvatarShadow: {
     position: "absolute",
-    bottom: height * 0.035,
+    bottom: height * 0.025,
     width: AVATAR_SIZE * 0.5,
     height: AVATAR_SIZE * 0.035,
     backgroundColor: "#0000002E",

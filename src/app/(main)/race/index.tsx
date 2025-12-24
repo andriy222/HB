@@ -31,7 +31,7 @@ import { useRouter } from "expo-router";
 import { mmkvStorage } from "../../../storage/appStorage";
 
 const trophy = require("../../../../assets/win.png");
-const { width } = Dimensions.get("window");
+const { width, height } = Dimensions.get("window");
 
 const Main = () => {
   const router = useRouter();
@@ -204,25 +204,25 @@ const Main = () => {
 const styles = StyleSheet.create({
   runningContainer: {
     position: "relative",
-    bottom: 80,
+    bottom: height * 0.08,
   },
   progress: {
     flexDirection: "column",
     alignItems: "center",
-    gap: width * 0.05,
+    gap: height * 0.02,
   },
   avatarContainer: {
     position: "relative",
-    top: width / 3.8,
+    top: height * 0.08,
     left: width * 0.13,
     zIndex: 2,
   },
   dataContainer: {
     position: "relative",
-    bottom: width * 0.1,
+    bottom: height * 0.04,
     flexDirection: "column",
     alignItems: "center",
-    gap: width * 0.05,
+    gap: height * 0.02,
   },
   progressText: {
     ...textPresets.progressText,
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
   finish: {
     alignItems: "center",
     flexDirection: "row",
-    gap: width * 0.03,
+    gap: 12,
   },
   trophy: {
     width: 80,
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
   stat: {
     flexDirection: "column",
     alignItems: "center",
-    gap: width * 0.02,
+    gap: 8,
   },
 });
 

@@ -21,7 +21,7 @@ export const styles = StyleSheet.create({
   titleContainer: {
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: height * 0.08,
+    marginBottom: height * 0.04,
   },
   title: {
     ...textPresets.logo,
