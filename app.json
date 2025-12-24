@@ -32,7 +32,7 @@
         ],
         "ITSAppUsesNonExemptEncryption": false
       },
-      "bundleIdentifier": "com.hybit.app"
+      "bundleIdentifier": "com.hybitapp.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -51,7 +51,7 @@
         "android.permission.BLUETOOTH_ADMIN",
         "android.permission.BLUETOOTH_CONNECT"
       ],
-      "package": "com.hybit.app"
+      "package": "com.hybitapp.app"
     },
     "web": {
       "favicon": "./assets/favicon.png"

@@ -190,11 +190,11 @@ const Main = () => {
               </Text>
             )}
           </View>
-          {/* {session.isActive && typeof __DEV__ !== "undefined" && __DEV__ && ( */}
-          {/* <PaperButton onPress={handleMockDrink} variant="big">
-            +100ml (Test)
-          </PaperButton> */}
-          {/* )} */}
+          {session.isActive && typeof __DEV__ !== "undefined" && __DEV__ && (
+            <PaperButton onPress={handleMockDrink} variant="big">
+              +100ml (Test)
+            </PaperButton>
+          )}
         </View>
       </View>
     </AuthBackground>

@@ -14,23 +14,27 @@
 ## Типи збірок
 
 ### 1. **Development** (для розробки)
+
 - Android: APK
 - iOS: Simulator build
 - Distribution: Internal
 
 ### 2. **Preview** (для тестування)
+
 - Android: APK
 - iOS: Release build (не для симулятора)
 - Distribution: Internal
 - Використовується для Pull Requests
 
 ### 3. **Production** (для продакшену)
+
 - Android: AAB (для Google Play Store)
 - iOS: Release build
 - Auto-increment version
 - Використовується для релізів
 
 ### 4. **Production-APK** (альтернатива для продакшену)
+
 - Android: APK (якщо потрібен APK замість AAB)
 - Розширює production профіль
 
@@ -45,17 +49,20 @@ npm install -g eas-cli
 ### Крок 2: Отримання EXPO_TOKEN
 
 1. Залогіньтесь в Expo:
+
    ```bash
    eas login
    ```
 
 2. Створіть токен:
+
    ```bash
    eas whoami
    eas build:configure
    ```
 
 3. Отримайте токен для CI/CD:
+
    ```bash
    eas token:create
    ```
@@ -67,6 +74,7 @@ npm install -g eas-cli
 Перейдіть в GitHub Repository → Settings → Secrets and variables → Actions і додайте:
 
 **Обов'язкові:**
+
 - `EXPO_TOKEN` - токен з EAS CLI (отриманий на кроці 2)
 
 ### Крок 4: Налаштування креденшелів для iOS
@@ -82,6 +90,7 @@ eas build --platform ios --profile preview
 #### Варіант B: Використання існуючих сертифікатів
 
 1. Завантажте існуючі креденшели:
+
    ```bash
    eas credentials
    ```
@@ -101,6 +110,7 @@ eas build --platform android --profile preview
 #### Варіант B: Використання існуючого keystore
 
 1. Завантажте keystore:
+
    ```bash
    eas credentials
    ```
@@ -126,13 +136,13 @@ eas build --platform android --profile preview
 ### Локальні збірки
 
 ```bash
-# Preview збірка для Android
+# Preview Android
 eas build --platform android --profile preview
 
-# Production збірка для iOS
+# Production iOS
 eas build --platform ios --profile production
 
-# Production APK замість AAB
+# Production APK
 eas build --platform android --profile production-apk
 ```
 
@@ -175,6 +185,7 @@ eas build:view [BUILD_ID]
 ### Помилка при збірці iOS: "No credentials found"
 
 Запустіть локально:
+
 ```bash
 eas build --platform ios --profile preview
 ```
@@ -184,6 +195,7 @@ EAS запитає креденшели і збереже їх.
 ### Помилка при збірці Android: "Keystore not found"
 
 Запустіть локально:
+
 ```bash
 eas build --platform android --profile preview
 ```

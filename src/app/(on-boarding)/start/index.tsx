@@ -23,16 +23,10 @@ const Start = () => {
   const { linkUp, connectedDevice } = useBleScanWithMock();
   const [selectedGender, setSelectedGender] = useState<Gender>("male");
   const [modalVisible, setModalVisible] = useState(false);
-  // const bleScanResult = useBleScan();
-  // logger.debug("🔧 useBleScan result:", bleScanResult);
-  // logger.debug("🔧 Keys:", Object.keys(bleScanResult || {}));
+
   useEffect(() => {
     logger.debug("🔗 linkUp:", linkUp);
-    logger.debug(
-      "📱 connectedDevice:",
-      connectedDevice?.name,
-      connectedDevice?.id
-    );
+    logger.debug("📱 connectedDevice:", connectedDevice?.name);
   }, [linkUp, connectedDevice]);
 
   function handleStart() {
