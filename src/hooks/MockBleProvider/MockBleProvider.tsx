@@ -42,7 +42,6 @@ export const useMockBleScan = () => {
     logger.ble("📱 [MOCK] Checking saved device:", savedDeviceId);
     logger.ble("📱 [MOCK] Onboarding completed:", hasCompletedOnboarding);
 
-    // Only auto-restore connection if onboarding is complete
     if (savedDeviceId === MOCK_DEVICE.id && hasCompletedOnboarding) {
       logger.ble("📱 [MOCK] Restoring connection");
       setConnectedDevice(MOCK_DEVICE);

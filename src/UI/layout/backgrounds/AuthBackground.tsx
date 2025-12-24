@@ -22,6 +22,7 @@ interface AuthLayoutProps {
   showTitle?: boolean;
   isSecondary?: boolean;
   isMain?: boolean;
+  isWelcome?: boolean;
   footer?: ReactNode;
 }
 
@@ -30,6 +31,7 @@ export default function AuthBackground({
   showTitle = true,
   isSecondary = true,
   isMain = false,
+  isWelcome = false,
   footer,
 }: AuthLayoutProps) {
   return (
@@ -50,6 +52,7 @@ export default function AuthBackground({
               contentContainerStyle={[
                 styles.scrollContent,
                 // isMain ? null : { flex: 1 },
+                isWelcome ? { justifyContent: "center" } : null,
               ]}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}

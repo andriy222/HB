@@ -20,7 +20,7 @@
     },
     "preview": {
       "extends": "base",
-      "distribution": "internal",
+      "distribution": "store",
       "credentialsSource": "remote",
       "android": {
         "buildType": "apk"
@@ -56,9 +56,9 @@
         "track": "internal"
       },
       "ios": {
-        "appleId": "your-apple-id@example.com",
-        "ascAppId": "1234567890",
-        "appleTeamId": "ABCD1234"
+        "appleId": "shan.wahid@hybit.com",
+        "ascAppId": "6756887847",
+        "appleTeamId": "6XR929C4NR"
       }
     }
   }

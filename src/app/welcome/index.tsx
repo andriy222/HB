@@ -23,7 +23,7 @@ export default function Welcome() {
   };
 
   return (
-    <AuthBackground isSecondary={true}>
+    <AuthBackground isSecondary={true} isWelcome={true}>
       <View style={styles.container}>
         <PaperButton onPress={handleContinue}>Continue</PaperButton>
       </View>
