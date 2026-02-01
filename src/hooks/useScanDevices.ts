@@ -59,11 +59,7 @@ export const useBleScan = () => {
     setNoTargetFound(false);
     foundTargetRef.current = false;
 
-    // On iOS, scanning with specific Service UUID is more reliable
-    // and helps iOS filter advertisements properly
-    const serviceUUIDs = Platform.OS === 'ios' ? [BLE_DEVICE.SERVICE_UUID] : null;
-
-    managerRef.current.startDeviceScan(serviceUUIDs, null, (error, device) => {
+    managerRef.current.startDeviceScan(null, null, (error, device) => {
       if (error) {
         setIsScanning(false);
         return;
@@ -189,18 +185,14 @@ export const useBleScan = () => {
 
         // Work around Android BLE PLX native crash when native timeout fires
         // by handling timeout on JS side and cancelling connection ourselves.
-        //
-        // IMPORTANT: Use autoConnect: false for active connection after scanning.
-        // autoConnect: true makes Android wait passively for device to appear,
-        // which can cause 30+ second delays or timeouts when device is already nearby.
         const mgr = managerRef.current;
         let finished = false;
-        const connectPromise = mgr.connectToDevice(deviceId, {
-          // Active connection - device was just discovered during scan
-          autoConnect: false,
-          // Request connection priority for faster data transfer (Android only)
-          ...(Platform.OS === 'android' && { requestMTU: 512 }),
-        });
+        // iOS: pass undefined for default behavior
+        // Android: use autoConnect: true for more reliable background reconnection
+        const connectPromise = mgr.connectToDevice(
+          deviceId,
+          Platform.OS === 'android' ? { autoConnect: true } : undefined,
+        );
         const timeoutMs = BLE_TIMEOUTS.CONNECTION_TIMEOUT;
         const withTimeout = Promise.race([
           connectPromise.then((d) => {
@@ -222,26 +214,7 @@ export const useBleScan = () => {
         ]) as Promise<Device>;
 
         const device = await withTimeout;
-
-        // iOS needs a small delay after connection before service discovery
-        // to allow the BLE stack to stabilize
-        if (Platform.OS === 'ios') {
-          await new Promise((resolve) => setTimeout(resolve, BLE_TIMEOUTS.IOS_CONNECTION_STABILIZATION));
-        }
-
         const ready = await device.discoverAllServicesAndCharacteristics();
-
-        // Request larger MTU for faster data transfer (Android)
-        // Default MTU is 23 bytes, which is too slow for streaming DL data
-        if (Platform.OS === 'android') {
-          try {
-            const mtu = await ready.requestMTU(512);
-            logger.debug(`📶 MTU negotiated: ${mtu}`);
-          } catch (mtuError) {
-            // MTU negotiation failure is not critical - continue with default
-            logger.warn('MTU negotiation failed, using default:', mtuError);
-          }
-        }
 
         // Verify the required service exists
         const svcs = await ready.services();
@@ -315,9 +288,10 @@ export const useBleScan = () => {
   // Note: On iOS, device UUIDs can change after Bluetooth restart,
   // so auto-reconnect may fail. In that case, user needs to scan again.
   useEffect(() => {
+    let cancelled = false;
     const tryReconnect = async () => {
-      const lastId = getLastDeviceId();
-      if (!lastId) {return;}
+      const lastId = await getLastDeviceId();
+      if (!lastId || cancelled) {return;}
 
       logger.debug(`🔄 Auto-reconnect to last device: ${lastId}`);
       const device = await connectToDevice(lastId);
@@ -330,6 +304,7 @@ export const useBleScan = () => {
     };
     const t = setTimeout(tryReconnect, 100);
     return () => {
+      cancelled = true;
       clearTimeout(t);
     };
   }, [connectToDevice]);

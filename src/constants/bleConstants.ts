@@ -28,13 +28,8 @@ export const BLE_TIMEOUTS = {
   /** Device scan duration in milliseconds (10 seconds) */
   SCAN_DURATION: 10000,
 
-  /** Connection timeout in milliseconds (20 seconds)
-   * Increased from 10s to allow time for:
-   * - BLE connection establishment
-   * - Service/characteristic discovery
-   * - MTU negotiation on Android
-   */
-  CONNECTION_TIMEOUT: 20000,
+  /** Connection timeout in milliseconds (10 seconds) */
+  CONNECTION_TIMEOUT: 10000,
 
   /** Delay before reconnect attempt after disconnect (milliseconds) */
   RECONNECT_INITIAL_DELAY: 1000,
@@ -53,9 +48,6 @@ export const BLE_TIMEOUTS = {
 
   /** Delay after auto-sync trigger (milliseconds) */
   AUTO_SYNC_DELAY: 250,
-
-  /** iOS stabilization delay after connection before service discovery (milliseconds) */
-  IOS_CONNECTION_STABILIZATION: 500,
 } as const;
 
 /**
