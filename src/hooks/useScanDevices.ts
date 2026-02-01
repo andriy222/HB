@@ -59,7 +59,11 @@ export const useBleScan = () => {
     setNoTargetFound(false);
     foundTargetRef.current = false;
 
-    managerRef.current.startDeviceScan(null, null, (error, device) => {
+    // On iOS, scanning with specific Service UUID is more reliable
+    // and helps iOS filter advertisements properly
+    const serviceUUIDs = Platform.OS === 'ios' ? [BLE_DEVICE.SERVICE_UUID] : null;
+
+    managerRef.current.startDeviceScan(serviceUUIDs, null, (error, device) => {
       if (error) {
         setIsScanning(false);
         return;
@@ -218,6 +222,13 @@ export const useBleScan = () => {
         ]) as Promise<Device>;
 
         const device = await withTimeout;
+
+        // iOS needs a small delay after connection before service discovery
+        // to allow the BLE stack to stabilize
+        if (Platform.OS === 'ios') {
+          await new Promise((resolve) => setTimeout(resolve, BLE_TIMEOUTS.IOS_CONNECTION_STABILIZATION));
+        }
+
         const ready = await device.discoverAllServicesAndCharacteristics();
 
         // Request larger MTU for faster data transfer (Android)
@@ -301,11 +312,21 @@ export const useBleScan = () => {
   );
 
   // Auto-reconnect to last device if available
+  // Note: On iOS, device UUIDs can change after Bluetooth restart,
+  // so auto-reconnect may fail. In that case, user needs to scan again.
   useEffect(() => {
-    const tryReconnect = () => {
+    const tryReconnect = async () => {
       const lastId = getLastDeviceId();
       if (!lastId) {return;}
-      connectToDevice(lastId);
+
+      logger.debug(`🔄 Auto-reconnect to last device: ${lastId}`);
+      const device = await connectToDevice(lastId);
+
+      // If auto-reconnect fails on iOS, clear saved ID as UUID may have changed
+      if (!device && Platform.OS === 'ios') {
+        logger.warn('⚠️ iOS auto-reconnect failed, clearing saved device ID');
+        await clearLastDeviceId();
+      }
     };
     const t = setTimeout(tryReconnect, 100);
     return () => {

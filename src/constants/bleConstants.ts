@@ -53,6 +53,9 @@ export const BLE_TIMEOUTS = {
 
   /** Delay after auto-sync trigger (milliseconds) */
   AUTO_SYNC_DELAY: 250,
+
+  /** iOS stabilization delay after connection before service discovery (milliseconds) */
+  IOS_CONNECTION_STABILIZATION: 500,
 } as const;
 
 /**
