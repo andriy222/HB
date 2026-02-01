@@ -1,9 +1,9 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { createMMKV } from 'react-native-mmkv';
+import { MMKV } from 'react-native-mmkv';
 import { logger } from '../utils/logger';
 
-export const storage = createMMKV();
+export const storage = new MMKV();
 
 const mmkvStorage = {
   getItem: (name: string) => {
@@ -17,7 +17,7 @@ const mmkvStorage = {
   },
   removeItem: (name: string) => {
     logger.debug(`📦 MMKV removeItem("${name}")`);
-    storage.remove(name);
+    storage.delete(name);
   },
 };
 
