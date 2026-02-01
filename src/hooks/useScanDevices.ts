@@ -1,14 +1,14 @@
-import { useEffect, useState, useRef, useCallback } from "react";
-import { BleManager, Device, Subscription } from "react-native-ble-plx";
-import { Platform } from "react-native";
+import { useEffect, useState, useRef, useCallback } from 'react';
+import { BleManager, Device, Subscription } from 'react-native-ble-plx';
+import { Platform } from 'react-native';
 import {
   clearLastDeviceId,
   getLastDeviceId,
   setLastDeviceId,
-} from "../utils/storage";
-import { BLE_DEVICE, BLE_TIMEOUTS } from "../constants/bleConstants";
-import { useConnectionStore } from "../store/connectionStore";
-import { logger } from "../utils/logger";
+} from '../utils/storage';
+import { BLE_DEVICE, BLE_TIMEOUTS } from '../constants/bleConstants';
+import { useConnectionStore } from '../store/connectionStore';
+import { logger } from '../utils/logger';
 
 export const useBleScan = () => {
   const [devices, setDevices] = useState<Device[]>([]);
@@ -16,10 +16,10 @@ export const useBleScan = () => {
   const [noTargetFound, setNoTargetFound] = useState(false);
 
   const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
-  const [linkUp, setLinkUp] = useState(false); 
+  const [linkUp, setLinkUp] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectingDeviceId, setConnectingDeviceId] = useState<string | null>(
-    null
+    null,
   );
   const [connectError, setConnectError] = useState<string | null>(null);
   const [isReconnecting, setIsReconnecting] = useState(false);
@@ -33,7 +33,7 @@ export const useBleScan = () => {
   const reconnectActiveRef = useRef(false);
 
   const TARGET_NAME = BLE_DEVICE.TARGET_NAME;
-  const TARGET_SERVICE = BLE_DEVICE.SERVICE_UUID.toLowerCase(); 
+  const TARGET_SERVICE = BLE_DEVICE.SERVICE_UUID.toLowerCase();
 
   useEffect(() => {
     managerRef.current = new BleManager();
@@ -48,7 +48,7 @@ export const useBleScan = () => {
   }, []);
 
   const startScan = useCallback(() => {
-    if (!managerRef.current) return;
+    if (!managerRef.current) {return;}
     reconnectActiveRef.current = false;
     if (reconnectTimerRef.current) {
       try { clearTimeout(reconnectTimerRef.current); } catch {}
@@ -65,14 +65,14 @@ export const useBleScan = () => {
         return;
       }
       if (device) {
-        const nameMatches = (device.name ?? "").trim() === TARGET_NAME;
+        const nameMatches = (device.name ?? '').trim() === TARGET_NAME;
         const svcMatches = (device.serviceUUIDs || [])
           .map((u) => u.toLowerCase())
           .includes(TARGET_SERVICE);
         if (nameMatches || svcMatches) {
           foundTargetRef.current = true;
           setDevices((prev) =>
-            prev.some((d) => d.id === device.id) ? prev : [...prev, device]
+            prev.some((d) => d.id === device.id) ? prev : [...prev, device],
           );
         }
       }
@@ -100,7 +100,7 @@ export const useBleScan = () => {
         userInitiatedDisconnectRef.current = true;
         await connectedDevice.cancelConnection();
       } catch (e) {
-        logger.warn("Failed to disconnect:", e);
+        logger.warn('Failed to disconnect:', e);
       }
     }
     setConnectedDevice(null);
@@ -137,7 +137,7 @@ export const useBleScan = () => {
 
     const delay = Math.min(
       BLE_TIMEOUTS.RECONNECT_MAX_DELAY,
-      BLE_TIMEOUTS.RECONNECT_INITIAL_DELAY * Math.pow(2, attemptNumber)
+      BLE_TIMEOUTS.RECONNECT_INITIAL_DELAY * Math.pow(2, attemptNumber),
     );
 
     logger.debug(`🔄 Scheduling reconnect attempt ${attemptNumber + 1} in ${delay}ms`);
@@ -174,7 +174,7 @@ export const useBleScan = () => {
 
   const connectToDevice = useCallback(
     async (deviceId: string) => {
-      if (!managerRef.current) return null;
+      if (!managerRef.current) {return null;}
 
       setConnectError(null);
       setIsConnecting(true);
@@ -185,12 +185,18 @@ export const useBleScan = () => {
 
         // Work around Android BLE PLX native crash when native timeout fires
         // by handling timeout on JS side and cancelling connection ourselves.
+        //
+        // IMPORTANT: Use autoConnect: false for active connection after scanning.
+        // autoConnect: true makes Android wait passively for device to appear,
+        // which can cause 30+ second delays or timeouts when device is already nearby.
         const mgr = managerRef.current;
         let finished = false;
-        const connectPromise = mgr.connectToDevice(
-          deviceId,
-          Platform.OS === "android" ? { autoConnect: true } : undefined
-        );
+        const connectPromise = mgr.connectToDevice(deviceId, {
+          // Active connection - device was just discovered during scan
+          autoConnect: false,
+          // Request connection priority for faster data transfer (Android only)
+          ...(Platform.OS === 'android' && { requestMTU: 512 }),
+        });
         const timeoutMs = BLE_TIMEOUTS.CONNECTION_TIMEOUT;
         const withTimeout = Promise.race([
           connectPromise.then((d) => {
@@ -203,7 +209,7 @@ export const useBleScan = () => {
                 try {
                   await mgr.cancelDeviceConnection(deviceId);
                 } catch {}
-                reject(new Error("Connection timeout"));
+                reject(new Error('Connection timeout'));
               }
             }, timeoutMs);
             // If connectPromise resolves/rejects first, clear the timer
@@ -214,14 +220,26 @@ export const useBleScan = () => {
         const device = await withTimeout;
         const ready = await device.discoverAllServicesAndCharacteristics();
 
+        // Request larger MTU for faster data transfer (Android)
+        // Default MTU is 23 bytes, which is too slow for streaming DL data
+        if (Platform.OS === 'android') {
+          try {
+            const mtu = await ready.requestMTU(512);
+            logger.debug(`📶 MTU negotiated: ${mtu}`);
+          } catch (mtuError) {
+            // MTU negotiation failure is not critical - continue with default
+            logger.warn('MTU negotiation failed, using default:', mtuError);
+          }
+        }
+
         // Verify the required service exists
         const svcs = await ready.services();
         const hasTarget = svcs.some(
-          (s) => s.uuid.toLowerCase() === TARGET_SERVICE
+          (s) => s.uuid.toLowerCase() === TARGET_SERVICE,
         );
         if (!hasTarget) {
           setConnectError(
-            `Required service ${TARGET_SERVICE} not found on device`
+            `Required service ${TARGET_SERVICE} not found on device`,
           );
           try { await ready.cancelConnection(); } catch {}
           return null;
@@ -250,14 +268,14 @@ export const useBleScan = () => {
 
             // Auto-reconnect on unexpected drops (e.g., <420 logs/no SYNC)
             if (!userInitiatedDisconnectRef.current) {
-              logger.info("🔌 Unexpected disconnect, starting reconnect sequence");
+              logger.info('🔌 Unexpected disconnect, starting reconnect sequence');
               autoReconnectAttemptsRef.current = 0;
               setIsReconnecting(true);
               reconnectActiveRef.current = true;
               scheduleReconnect(deviceId, 0);
             } else {
               // User-initiated disconnect - reset all reconnect state
-              logger.debug("🔌 User-initiated disconnect");
+              logger.debug('🔌 User-initiated disconnect');
               autoReconnectAttemptsRef.current = 0;
               setIsReconnecting(false);
               reconnectActiveRef.current = false;
@@ -266,7 +284,7 @@ export const useBleScan = () => {
                 reconnectTimerRef.current = null;
               }
             }
-          }
+          },
         );
 
         return ready;
@@ -279,14 +297,14 @@ export const useBleScan = () => {
         setConnectingDeviceId(null);
       }
     },
-    [stopScan, scheduleReconnect]
+    [stopScan, scheduleReconnect],
   );
 
   // Auto-reconnect to last device if available
   useEffect(() => {
     const tryReconnect = () => {
       const lastId = getLastDeviceId();
-      if (!lastId) return;
+      if (!lastId) {return;}
       connectToDevice(lastId);
     };
     const t = setTimeout(tryReconnect, 100);
