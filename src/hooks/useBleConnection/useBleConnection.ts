@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState, useCallback } from "react";
-import { Device } from "react-native-ble-plx";
-import { base64Decode, base64Encode } from "../../utils/base64";
-import { captureBLEError, trackBLEEvent } from "../../utils/sentry";
-import { logger } from "../../utils/logger";
-import { REGEX_PATTERNS, VALIDATION, PROTOCOL_COMMANDS, BLE_ERROR_KEYWORDS } from "../../constants/appConstants";
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { Device } from 'react-native-ble-plx';
+import { base64Decode, base64Encode } from '../../utils/base64';
+import { captureBLEError, trackBLEEvent } from '../../utils/sentry';
+import { logger } from '../../utils/logger';
+import { REGEX_PATTERNS, VALIDATION, PROTOCOL_COMMANDS } from '../../constants/appConstants';
 
 interface BLEConfig {
   targetService: string;
@@ -26,12 +26,12 @@ export function useBLEConnection(
   isConnected: boolean,
   config: BLEConfig,
   onDataReceived?: (data: ParsedDLLine) => void,
-  onLineReceived?: (line: string) => void  // ✅ NEW: for protocol handler
+  onLineReceived?: (line: string) => void,  // ✅ NEW: for protocol handler
 ) {
   const [isReady, setIsReady] = useState(false);
   const [batteryLevel, setBatteryLevel] = useState<number | null>(null);
-  
-  const lineBufferRef = useRef<string>("");
+
+  const lineBufferRef = useRef<string>('');
   const subscriptionRef = useRef<any>(null);
   const seenIndicesRef = useRef<Set<number>>(new Set());
 
@@ -44,8 +44,8 @@ export function useBLEConnection(
     try {
       return base64Decode(b64);
     } catch (e) {
-      logger.warn("Failed to decode base64", e);
-      return "";
+      logger.warn('Failed to decode base64', e);
+      return '';
     }
   }, []);
 
@@ -53,7 +53,7 @@ export function useBLEConnection(
    * Parse coaster timestamp (YYMMDDhhmmss) to Date
    */
   const parseCoasterTimestamp = useCallback((ts: string): Date | undefined => {
-    if (!ts || ts.length !== 12) return undefined;
+    if (!ts || ts.length !== 12) {return undefined;}
 
     const year = 2000 + parseInt(ts.slice(0, 2), 10);
     const month = parseInt(ts.slice(2, 4), 10) - 1; // 0-indexed
@@ -71,13 +71,13 @@ export function useBLEConnection(
    * Timestamp format: YYMMDDhhmmss (e.g., 241121143000 = 2024-11-21 14:30:00)
    */
   const parseDLLine = useCallback((line: string): ParsedDLLine | null => {
-    if (!line.startsWith(PROTOCOL_COMMANDS.DL)) return null;
+    if (!line.startsWith(PROTOCOL_COMMANDS.DL)) {return null;}
 
     const indexMatch = REGEX_PATTERNS.DL_INDEX.exec(line);
-    if (!indexMatch) return null;
+    if (!indexMatch) {return null;}
 
     const index = parseInt(indexMatch[1], 10);
-    if (!Number.isFinite(index)) return null;
+    if (!Number.isFinite(index)) {return null;}
 
     let ml = NaN;
     const afterIndex = REGEX_PATTERNS.DL_VALUE.exec(line);
@@ -92,7 +92,7 @@ export function useBLEConnection(
       }
     }
 
-    if (!Number.isFinite(ml)) return null;
+    if (!Number.isFinite(ml)) {return null;}
 
     // Parse timestamp if present (YYMMDDhhmmss format)
     let timestamp: string | undefined;
@@ -107,9 +107,9 @@ export function useBLEConnection(
   }, [parseCoasterTimestamp]);
 
   const parseDEVLine = useCallback((line: string): number | null => {
-    if (!line.startsWith(PROTOCOL_COMMANDS.DEV)) return null;
+    if (!line.startsWith(PROTOCOL_COMMANDS.DEV)) {return null;}
     const match = REGEX_PATTERNS.DEV_BATTERY.exec(line);
-    if (!match) return null;
+    if (!match) {return null;}
     const level = parseInt(match[1], 10);
     return Number.isFinite(level)
       ? Math.max(VALIDATION.BATTERY_MIN, Math.min(VALIDATION.BATTERY_MAX, level))
@@ -118,7 +118,7 @@ export function useBLEConnection(
 
   const handleLine = useCallback((line: string) => {
     const trimmed = line.trim();
-    if (!trimmed) return;
+    if (!trimmed) {return;}
 
     logger.ble(`RX: ${trimmed}`);
 
@@ -141,7 +141,7 @@ export function useBLEConnection(
   }, [parseDLLine, parseDEVLine, onDataReceived, onLineReceived]);
 
   const subscribe = useCallback(async () => {
-    if (!device || !isConnected) return;
+    if (!device || !isConnected) {return;}
 
     try {
       if (subscriptionRef.current) {
@@ -149,12 +149,12 @@ export function useBLEConnection(
           // Remove subscription on all platforms to prevent memory leak
           subscriptionRef.current.remove();
         } catch (error) {
-          logger.warn("Failed to remove BLE subscription", error);
+          logger.warn('Failed to remove BLE subscription', error);
         }
         subscriptionRef.current = null;
       }
 
-      lineBufferRef.current = "";
+      lineBufferRef.current = '';
       seenIndicesRef.current.clear();
 
       const subscription = device.monitorCharacteristicForService(
@@ -162,71 +162,70 @@ export function useBLEConnection(
         rxCharacteristic,
         (error, characteristic) => {
           if (error) {
-            logger.warn("BLE RX error", error);
-            captureBLEError("subscribe", error, device.id);
+            logger.warn('BLE RX error', error);
+            captureBLEError('subscribe', error, device.id);
             return;
           }
 
-          if (!characteristic?.value) return;
+          if (!characteristic?.value) {return;}
 
           const chunk = decodeBase64(characteristic.value);
-          if (!chunk) return;
+          if (!chunk) {return;}
 
           lineBufferRef.current += chunk;
           const lines = lineBufferRef.current.split(REGEX_PATTERNS.LINE_SEPARATORS);
-          lineBufferRef.current = lines.pop() || "";
+          lineBufferRef.current = lines.pop() || '';
 
           lines.forEach(handleLine);
-        }
+        },
       );
 
       subscriptionRef.current = subscription;
       setIsReady(true);
 
-      trackBLEEvent("rx_subscribed", { deviceId: device.id });
-      logger.ble("RX subscribed successfully");
+      trackBLEEvent('rx_subscribed', { deviceId: device.id });
+      logger.ble('RX subscribed successfully');
     } catch (e) {
-      logger.error("Subscribe failed", e);
-      captureBLEError("subscribe", e as Error, device?.id);
+      logger.error('Subscribe failed', e);
+      captureBLEError('subscribe', e as Error, device?.id);
       setIsReady(false);
     }
   }, [device, isConnected, targetService, rxCharacteristic, decodeBase64, handleLine]);
 
   const sendCommand = useCallback(async (command: string): Promise<boolean> => {
     if (!device || !isConnected) {
-      logger.warn("Cannot send: not connected");
+      logger.warn('Cannot send: not connected');
       return false;
     }
 
     try {
       const base64 = base64Encode(command);
 
-      // Try with response first (more reliable)
+      // Nordic UART Service (NUS) TX characteristic typically uses Write Without Response
+      // for better throughput. Try without response first, then fallback to with response.
       try {
-        await device.writeCharacteristicWithResponseForService(
+        await device.writeCharacteristicWithoutResponseForService(
           targetService,
           txCharacteristic,
-          base64
+          base64,
         );
-        logger.ble(`TX (with response): ${command.trim()}`);
+        logger.ble(`TX: ${command.trim()}`);
         return true;
       } catch (e1) {
-        // Only fallback to without-response if characteristic doesn't support response
-        // Check if error is about unsupported operation
+        // Fallback to with-response if without-response fails
         const error = e1 as Error;
-        const isUnsupportedOperation =
-          error?.message?.includes(BLE_ERROR_KEYWORDS.WITHOUT_RESPONSE) ||
-          error?.message?.includes(BLE_ERROR_KEYWORDS.NOT_SUPPORTED) ||
-          error?.message?.includes(BLE_ERROR_KEYWORDS.GATT);
+        const needsResponse =
+          error?.message?.includes('with response') ||
+          error?.message?.includes('WRITE_TYPE');
 
-        if (isUnsupportedOperation) {
-          logger.warn("Response not supported, trying without response");
-          await device.writeCharacteristicWithoutResponseForService(
+        if (needsResponse) {
+          logger.debug('Without response not supported, trying with response');
+          await device.writeCharacteristicWithResponseForService(
             targetService,
             txCharacteristic,
-            base64
+            base64,
           );
-          logger.ble(`TX (without response): ${command.trim()}`);
+          logger.ble(`TX (with response): ${command.trim()}`);
           return true;
         } else {
           // For other errors (disconnect, timeout, etc) - throw to outer catch
@@ -234,8 +233,8 @@ export function useBLEConnection(
         }
       }
     } catch (e) {
-      logger.error("Send failed", e);
-      captureBLEError("send_command", e as Error, device?.id);
+      logger.error('Send failed', e);
+      captureBLEError('send_command', e as Error, device?.id);
       return false;
     }
   }, [device, isConnected, targetService, txCharacteristic]);
@@ -251,7 +250,7 @@ export function useBLEConnection(
           // Remove subscription on all platforms to prevent memory leak
           subscriptionRef.current.remove();
         } catch (error) {
-          logger.warn("Failed to remove BLE subscription", error);
+          logger.warn('Failed to remove BLE subscription', error);
         }
         subscriptionRef.current = null;
       }
