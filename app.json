@@ -15,13 +15,20 @@
           "isBackgroundEnabled": true,
           "modes": [
             "peripheral",
-            
             "central"
           ],
           "bluetoothAlwaysPermission": "Allow $(PRODUCT_NAME) to connect to bluetooth devices"
         }
       ],
-      "expo-router"
+      "expo-router",
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "react-native",
+          "organization": "andrii-hb"
+        }
+      ]
     ],
     "ios": {
       "supportsTablet": true,

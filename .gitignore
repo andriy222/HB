@@ -46,3 +46,5 @@ google-service-account.json
 *.keystore
 *.cer
 *.p12
+
+.env.local
