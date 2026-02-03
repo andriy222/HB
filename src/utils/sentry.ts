@@ -5,68 +5,50 @@
  * This file should be initialized early in the app lifecycle.
  */
 
-import * as Sentry from "@sentry/react-native";
-import { logger } from "./logger";
+import * as Sentry from '@sentry/react-native';
+import { logger } from './logger';
+
+// Your Sentry DSN - get from https://sentry.io/settings/projects/YOUR_PROJECT/keys/
+const SENTRY_DSN = ''; // TODO: Add your Sentry DSN here
 
 /**
  * Initialize Sentry
  *
- * Call this function at app startup (in App.tsx or index.js)
- *
- * @param dsn - Sentry Data Source Name (get from Sentry project settings)
- * @param environment - Environment name (development, staging, production)
+ * Call this function at app startup (in _layout.tsx)
  */
-export function initSentry(
-  dsn: string = process.env.SENTRY_DSN || "",
-  environment: string = __DEV__ ? "development" : "production"
-) {
-  if (!dsn) {
-    logger.warn("⚠️ Sentry DSN not configured. Error tracking disabled.");
+export function initSentry() {
+  if (!SENTRY_DSN) {
+    logger.warn('⚠️ Sentry DSN not configured. Error tracking disabled.');
     return;
   }
 
   Sentry.init({
-    dsn,
-    environment,
+    dsn: SENTRY_DSN,
+    environment: __DEV__ ? 'development' : 'production',
 
-    // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
-    // We recommend adjusting this value in production
+    // Performance monitoring - reduce in production
     tracesSampleRate: __DEV__ ? 1.0 : 0.2,
 
-    // If true, Sentry will try to print out useful debugging information
+    // Debug mode in development
     debug: __DEV__,
 
-    // Enable automatic breadcrumbs for navigation, network, etc.
+    // Session tracking
     enableAutoSessionTracking: true,
-    sessionTrackingIntervalMillis: 10000,
 
-    // Attach stack traces to messages
+    // Attach stack traces
     attachStacktrace: true,
 
-    // Capture unhandled promise rejections
-    enableCaptureFailedRequests: true,
-
-    // Integrate with React Navigation if available
-    integrations: [
-      new Sentry.ReactNativeTracing({
-        tracingOrigins: ["localhost", /^\//],
-        routingInstrumentation: Sentry.reactNavigationIntegration(),
-      }),
-    ],
-
-    // Filter out sensitive information
-    beforeSend(event, hint) {
-      // Remove sensitive data from events
+    // Filter sensitive data
+    beforeSend(event) {
       if (event.request?.headers) {
-        delete event.request.headers["Authorization"];
-        delete event.request.headers["Cookie"];
+        delete event.request.headers.Authorization;
+        delete event.request.headers.Cookie;
       }
-
       return event;
     },
   });
 
-  logger.info("✅ Sentry initialized");
+  logger.info('✅ Sentry initialized');
 }
 
 /**
@@ -77,14 +59,14 @@ export function initSentry(
  */
 export function captureError(
   error: Error | string,
-  context?: Record<string, any>
+  context?: Record<string, any>,
 ) {
   if (context) {
-    Sentry.setContext("error_context", context);
+    Sentry.setContext('error_context', context);
   }
 
-  if (typeof error === "string") {
-    Sentry.captureMessage(error, "error");
+  if (typeof error === 'string') {
+    Sentry.captureMessage(error, 'error');
   } else {
     Sentry.captureException(error);
   }
@@ -100,12 +82,12 @@ export function captureError(
 export function captureBLEError(
   operation: string,
   error: Error | string,
-  deviceId?: string
+  deviceId?: string,
 ) {
   const context = {
     operation,
     deviceId,
-    category: "bluetooth",
+    category: 'bluetooth',
   };
 
   captureError(error, context);
@@ -120,7 +102,7 @@ export function captureBLEError(
  */
 export function setUserContext(
   userId: string,
-  userData?: Record<string, any>
+  userData?: Record<string, any>,
 ) {
   Sentry.setUser({
     id: userId,
@@ -141,8 +123,8 @@ export function setUserContext(
 export function addBreadcrumb(
   message: string,
   category: string,
-  level: "debug" | "info" | "warning" | "error" | "fatal" = "info",
-  data?: Record<string, any>
+  level: 'debug' | 'info' | 'warning' | 'error' | 'fatal' = 'info',
+  data?: Record<string, any>,
 ) {
   Sentry.addBreadcrumb({
     message,
@@ -159,7 +141,7 @@ export function addBreadcrumb(
  * @param data - Event data
  */
 export function trackBLEEvent(event: string, data?: Record<string, any>) {
-  addBreadcrumb(event, "bluetooth", "info", data);
+  addBreadcrumb(event, 'bluetooth', 'info', data);
 }
 
 /**
@@ -169,7 +151,7 @@ export function trackBLEEvent(event: string, data?: Record<string, any>) {
  * @param data - Event data
  */
 export function trackSessionEvent(event: string, data?: Record<string, any>) {
-  addBreadcrumb(event, "session", "info", data);
+  addBreadcrumb(event, 'session', 'info', data);
 }
 
 /**
