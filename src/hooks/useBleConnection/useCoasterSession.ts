@@ -164,6 +164,12 @@ export function useCoasterSession(config: CoasterSessionConfig) {
       autoSyncRef.current = false;
 
       logger.info(`🏁 New session started (${gender})`);
+
+      // Send initial commands to coaster after connection
+      // This keeps the connection alive and syncs time/goals
+      setTimeout(() => {
+        requestLogs();
+      }, BLE_TIMEOUTS.BACKFILL_STABILIZATION_DELAY);
     }
   }, [isConnected, device, ble.isReady]);
 
