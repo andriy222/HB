@@ -62,6 +62,7 @@ jobs:
           fi
 
       - name: Build Android App
+        if: github.event_name != 'pull_request'
         run: |
           eas build --platform android --profile ${{ steps.build-config.outputs.profile }} --non-interactive --no-wait
         env:
