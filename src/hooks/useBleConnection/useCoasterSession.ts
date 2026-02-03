@@ -134,6 +134,8 @@ export function useCoasterSession(config: CoasterSessionConfig) {
    * the app re-syncs time and backfills before applying penalties"
    */
   useEffect(() => {
+    logger.debug(`🔌 Session check: isConnected=${isConnected}, device=${!!device}, isReady=${ble.isReady}`);
+
     if (!isConnected || !device || !ble.isReady) {return;}
 
     const currentSession = sessionRef.current;

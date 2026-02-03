@@ -141,7 +141,12 @@ export function useBLEConnection(
   }, [parseDLLine, parseDEVLine, onDataReceived, onLineReceived]);
 
   const subscribe = useCallback(async () => {
-    if (!device || !isConnected) {return;}
+    if (!device || !isConnected) {
+      logger.debug(`📡 Subscribe skipped: device=${!!device}, isConnected=${isConnected}`);
+      return;
+    }
+
+    logger.debug(`📡 Starting RX subscription for service=${targetService}, rx=${rxCharacteristic}`);
 
     try {
       if (subscriptionRef.current) {
