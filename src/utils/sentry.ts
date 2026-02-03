@@ -9,7 +9,7 @@ import * as Sentry from '@sentry/react-native';
 import { logger } from './logger';
 
 // Your Sentry DSN - get from https://sentry.io/settings/projects/YOUR_PROJECT/keys/
-const SENTRY_DSN = ''; // TODO: Add your Sentry DSN here
+const SENTRY_DSN = 'https://c1bb0cc7f1b1e64b94cf555798624ef4@o4510822396264448.ingest.de.sentry.io/4510822398951504';
 
 /**
  * Initialize Sentry
