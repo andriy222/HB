@@ -82,8 +82,9 @@ export function useCoasterSession(config: CoasterSessionConfig) {
     onDataComplete: (count) => {
       logger.info(`📊 Data complete: ${count} logs`);
 
-      // Auto-sync if we got 0 logs or >= max expected logs
-      if ((count === 0 || count >= BLE_PROTOCOL.MAX_EXPECTED_LOGS) && !autoSyncRef.current) {
+      // Always send GOAL + SYNC after receiving logs (or END with 0 logs)
+      // This completes the initialization sequence: GET ALL → GOAL → SYNC
+      if (!autoSyncRef.current) {
         autoSyncRef.current = true;
         setTimeout(() => {
           sendGoalAndSync();
