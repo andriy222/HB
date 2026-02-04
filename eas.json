@@ -5,7 +5,10 @@
   },
   "build": {
     "base": {
-      "node": "20.19.4"
+      "node": "20.19.4",
+      "env": {
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+      }
     },
     "development": {
       "extends": "base",
