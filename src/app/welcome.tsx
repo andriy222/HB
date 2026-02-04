@@ -1,10 +1,10 @@
 import { View, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
-import AuthBackground from '../../UI/layout/backgrounds/AuthBackground';
-import PaperButton from '../../UI/PaperButton/PaperButton';
-import { useOnboardingStatus } from '../../hooks/useOnboardingStatus/useOnboardingStatus';
-import { logger } from '../../utils/logger';
+import AuthBackground from '../UI/layout/backgrounds/AuthBackground';
+import PaperButton from '../UI/PaperButton/PaperButton';
+import { useOnboardingStatus } from '../hooks/useOnboardingStatus/useOnboardingStatus';
+import { logger } from '../utils/logger';
 
 export default function Welcome() {
   const router = useRouter();
