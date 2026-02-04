@@ -19,14 +19,13 @@ import * as ExpoSplashScreen from 'expo-splash-screen';
 import { colors, fontConfig } from '../theme';
 import SplashScreen from '../UI/layout/SplashScreen/SplashScreen';
 import { logger } from '../utils/logger';
-import { initSentry } from '../utils/sentry';
-
-// Initialize Sentry safely - wrapped in try-catch to prevent crashes
-try {
-  initSentry();
-} catch (e) {
-  console.warn('Failed to initialize Sentry:', e);
-}
+// TEMPORARILY DISABLED - Sentry was causing crashes on TestFlight
+// import { initSentry } from '../utils/sentry';
+// try {
+//   initSentry();
+// } catch (e) {
+//   console.warn('Failed to initialize Sentry:', e);
+// }
 
 const theme = {
   ...MD3LightTheme,
