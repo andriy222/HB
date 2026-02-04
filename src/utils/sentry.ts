@@ -25,8 +25,9 @@ export function initSentry() {
     dsn: SENTRY_DSN,
     environment: __DEV__ ? 'development' : 'production',
 
-    // Performance monitoring - reduce in production
-    tracesSampleRate: __DEV__ ? 1.0 : 0.2,
+    // Disable performance monitoring to avoid Expo Router conflicts
+    tracesSampleRate: 0,
+    enableTracing: false,
 
     // Debug mode in development
     debug: __DEV__,
@@ -36,6 +37,9 @@ export function initSentry() {
 
     // Attach stack traces
     attachStacktrace: true,
+
+    // Disable automatic instrumentation that may conflict with Expo Router
+    enableAutoPerformanceTracing: false,
 
     // Filter sensitive data
     beforeSend(event) {
