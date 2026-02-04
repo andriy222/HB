@@ -6,7 +6,6 @@
  */
 
 import * as Sentry from '@sentry/react-native';
-import { logger } from './logger';
 
 // Your Sentry DSN - get from https://sentry.io/settings/projects/YOUR_PROJECT/keys/
 const SENTRY_DSN = 'https://c1bb0cc7f1b1e64b94cf555798624ef4@o4510822396264448.ingest.de.sentry.io/4510822398951504';
@@ -18,7 +17,7 @@ const SENTRY_DSN = 'https://c1bb0cc7f1b1e64b94cf555798624ef4@o4510822396264448.i
  */
 export function initSentry() {
   if (!SENTRY_DSN) {
-    logger.warn('⚠️ Sentry DSN not configured. Error tracking disabled.');
+    console.warn('⚠️ Sentry DSN not configured. Error tracking disabled.');
     return;
   }
 
@@ -48,7 +47,7 @@ export function initSentry() {
     },
   });
 
-  logger.info('✅ Sentry initialized');
+  console.log('✅ Sentry initialized');
 }
 
 /**
@@ -91,7 +90,7 @@ export function captureBLEError(
   };
 
   captureError(error, context);
-  logger.error(`[BLE Error] ${operation}:`, error);
+  console.error(`[BLE Error] ${operation}:`, error);
 }
 
 /**
