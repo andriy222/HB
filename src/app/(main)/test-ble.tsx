@@ -8,13 +8,13 @@ import {
   TouchableOpacity,
   Platform,
 } from "react-native";
-import AuthBackground from "../../../UI/layout/backgrounds/AuthBackground";
-import BottomNavigation from "../../../components/BottomNavigation/BottomNavigation";
-import { useSession } from "../../../hooks/useBleConnection/useSession";
-import { useCoasterConnection } from "../../../store/connectionStore";
-import { textPresets } from "../../../theme";
-import { SESSION_CONFIG, BLE_CONFIG } from "../../../constants/sessionConstants";
-import { useBleScanWithMock } from "../../../hooks/MockBleProvider/useBleScanWithMock";
+import AuthBackground from "../../UI/layout/backgrounds/AuthBackground";
+import BottomNavigation from "../../components/BottomNavigation/BottomNavigation";
+import { useSession } from "../../hooks/useBleConnection/useSession";
+import { useCoasterConnection } from "../../store/connectionStore";
+import { textPresets } from "../../theme";
+import { SESSION_CONFIG, BLE_CONFIG } from "../../constants/sessionConstants";
+import { useBleScanWithMock } from "../../hooks/MockBleProvider/useBleScanWithMock";
 
 const { width } = Dimensions.get("window");
 

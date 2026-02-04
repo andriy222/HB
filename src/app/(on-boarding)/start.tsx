@@ -1,19 +1,19 @@
 import { View, StyleSheet, Dimensions } from "react-native";
 import { Text } from "react-native-paper";
 import React, { useEffect, useState } from "react";
-import AuthBackground from "../../../UI/layout/backgrounds/AuthBackground";
-import { getSelectedGender, Gender } from "../../../utils/storage";
-import { colors, mixins, textPresets } from "../../../theme";
-import Podium from "../../../components/Podium/Podium";
-import PaperButton from "../../../UI/PaperButton/PaperButton";
-import SpriteAnimator from "../../../components/SpriteAnimator/SpriteAnimator";
-import { AVATAR_SIZE, FEMALE, MALE } from "../../../utils/constants";
-import ConnectionModal from "../../../UI/ConnectionModal/ConnectionModal";
+import AuthBackground from "../../UI/layout/backgrounds/AuthBackground";
+import { getSelectedGender, Gender } from "../../utils/storage";
+import { colors, mixins, textPresets } from "../../theme";
+import Podium from "../../components/Podium/Podium";
+import PaperButton from "../../UI/PaperButton/PaperButton";
+import SpriteAnimator from "../../components/SpriteAnimator/SpriteAnimator";
+import { AVATAR_SIZE, FEMALE, MALE } from "../../utils/constants";
+import ConnectionModal from "../../UI/ConnectionModal/ConnectionModal";
 import { useRouter } from "expo-router";
-import { useBleStore } from "../../../store/bleStore";
-import { useBleScan } from "../../../hooks/useScanDevices";
-import { useBleScanWithMock } from "../../../hooks/MockBleProvider/useBleScanWithMock";
-import { logger } from "../../../utils/logger";
+import { useBleStore } from "../../store/bleStore";
+import { useBleScan } from "../../hooks/useScanDevices";
+import { useBleScanWithMock } from "../../hooks/MockBleProvider/useBleScanWithMock";
+import { logger } from "../../utils/logger";
 
 const { height } = Dimensions.get("window");
 

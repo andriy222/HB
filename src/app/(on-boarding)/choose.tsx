@@ -2,16 +2,16 @@ import { View, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { Text } from "react-native-paper";
 import { useState, useEffect } from "react";
-import AuthBackground from "../../../UI/layout/backgrounds/AuthBackground";
-import PaperButton from "../../../UI/PaperButton/PaperButton";
-import Label from "../../../UI/Label/Label";
-import { textPresets } from "../../../theme";
-import AvatarSlider from "../../../components/AvatarSlider/AvatarSlider";
+import AuthBackground from "../../UI/layout/backgrounds/AuthBackground";
+import PaperButton from "../../UI/PaperButton/PaperButton";
+import Label from "../../UI/Label/Label";
+import { textPresets } from "../../theme";
+import AvatarSlider from "../../components/AvatarSlider/AvatarSlider";
 import {
   Gender,
   getSelectedGender,
   setSelectedGender,
-} from "../../../utils/storage";
+} from "../../utils/storage";
 
 export default function OnBoarding() {
   const router = useRouter();

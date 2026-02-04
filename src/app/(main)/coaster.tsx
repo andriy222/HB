@@ -1,13 +1,13 @@
-import BottomNavigation from "../../../components/BottomNavigation/BottomNavigation";
-import AuthBackground from "../../../UI/layout/backgrounds/AuthBackground";
+import BottomNavigation from "../../components/BottomNavigation/BottomNavigation";
+import AuthBackground from "../../UI/layout/backgrounds/AuthBackground";
 import { Dimensions, StyleSheet, Text, View, Image } from "react-native";
-import { colors, textPresets } from "../../../theme";
-import { useConnectionStatus } from "../../../hooks/useConnectionStatus/useConnectionStatus";
+import { colors, textPresets } from "../../theme";
+import { useConnectionStatus } from "../../hooks/useConnectionStatus/useConnectionStatus";
 import { useEffect } from "react";
-import { logger } from "../../../utils/logger";
+import { logger } from "../../utils/logger";
 
 const { width, height } = Dimensions.get("window");
-const coaster = require("../../../../assets/coaster.png");
+const coaster = require("../../../assets/coaster.png");
 
 const CoasterStatus = () => {
   const status = useConnectionStatus();

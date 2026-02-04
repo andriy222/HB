@@ -1,36 +1,36 @@
 import React, { useEffect, useState, useMemo } from "react";
-import AuthBackground from "../../../UI/layout/backgrounds/AuthBackground";
-import { clearStorage, debugStorage, storage } from "../../../store/bleStore";
-import Podium from "../../../components/Podium/Podium";
-import BottomNavigation from "../../../components/BottomNavigation/BottomNavigation";
-import SpriteAnimator from "../../../components/SpriteAnimator/SpriteAnimator";
+import AuthBackground from "../../UI/layout/backgrounds/AuthBackground";
+import { clearStorage, debugStorage, storage } from "../../store/bleStore";
+import Podium from "../../components/Podium/Podium";
+import BottomNavigation from "../../components/BottomNavigation/BottomNavigation";
+import SpriteAnimator from "../../components/SpriteAnimator/SpriteAnimator";
 import {
   AVATAR_SIZE,
   FEMALE,
   MALE,
   AvatarAnimation,
-} from "../../../utils/constants";
-import { Gender, getSelectedGender } from "../../../utils/storage";
+} from "../../utils/constants";
+import { Gender, getSelectedGender } from "../../utils/storage";
 import { View, StyleSheet, Dimensions, Text, Image } from "react-native";
-import ConnectionAlerts from "../../../components/ConnectionAlert/ConnectionAlerts";
-import PaperButton from "../../../UI/PaperButton/PaperButton";
-import PaperProgressBar from "../../../UI/PaperProgressBar/PaperProgressBar";
-import { SESSION_CONFIG } from "../../../constants/sessionConstants";
-import { textPresets } from "../../../theme";
-import { useSession } from "../../../hooks/useBleConnection/useSession";
+import ConnectionAlerts from "../../components/ConnectionAlert/ConnectionAlerts";
+import PaperButton from "../../UI/PaperButton/PaperButton";
+import PaperProgressBar from "../../UI/PaperProgressBar/PaperProgressBar";
+import { SESSION_CONFIG } from "../../constants/sessionConstants";
+import { textPresets } from "../../theme";
+import { useSession } from "../../hooks/useBleConnection/useSession";
 import {
   getBestRun,
   getLastRaceDistance,
   setLastRaceDistance,
   clearLastRaceDistance,
-} from "../../../storage/appStorage";
+} from "../../storage/appStorage";
 
-import { useGlobalConnectionMonitor } from "../../../hooks/useConnectionMonitor";
-import { logger } from "../../../utils/logger";
+import { useGlobalConnectionMonitor } from "../../hooks/useConnectionMonitor";
+import { logger } from "../../utils/logger";
 import { useRouter } from "expo-router";
-import { mmkvStorage } from "../../../storage/appStorage";
+import { mmkvStorage } from "../../storage/appStorage";
 
-const trophy = require("../../../../assets/win.png");
+const trophy = require("../../../assets/win.png");
 const { width } = Dimensions.get("window");
 
 const Main = () => {
