@@ -21,8 +21,12 @@ import SplashScreen from '../UI/layout/SplashScreen/SplashScreen';
 import { logger } from '../utils/logger';
 import { initSentry } from '../utils/sentry';
 
-// Initialize Sentry as early as possible
-initSentry();
+// Initialize Sentry safely - wrapped in try-catch to prevent crashes
+try {
+  initSentry();
+} catch (e) {
+  console.warn('Failed to initialize Sentry:', e);
+}
 
 const theme = {
   ...MD3LightTheme,

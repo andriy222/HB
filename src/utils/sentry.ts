@@ -21,37 +21,41 @@ export function initSentry() {
     return;
   }
 
-  Sentry.init({
-    dsn: SENTRY_DSN,
-    environment: __DEV__ ? 'development' : 'production',
+  try {
+    Sentry.init({
+      dsn: SENTRY_DSN,
+      environment: __DEV__ ? 'development' : 'production',
 
-    // Disable performance monitoring to avoid Expo Router conflicts
-    tracesSampleRate: 0,
-    enableTracing: false,
+      // Disable performance monitoring to avoid Expo Router conflicts
+      tracesSampleRate: 0,
+      enableTracing: false,
 
-    // Debug mode in development
-    debug: __DEV__,
+      // Debug mode in development
+      debug: __DEV__,
 
-    // Session tracking
-    enableAutoSessionTracking: true,
+      // Session tracking
+      enableAutoSessionTracking: true,
 
-    // Attach stack traces
-    attachStacktrace: true,
+      // Attach stack traces
+      attachStacktrace: true,
 
-    // Disable automatic instrumentation that may conflict with Expo Router
-    enableAutoPerformanceTracing: false,
+      // Disable automatic instrumentation that may conflict with Expo Router
+      enableAutoPerformanceTracing: false,
 
-    // Filter sensitive data
-    beforeSend(event) {
-      if (event.request?.headers) {
-        delete event.request.headers.Authorization;
-        delete event.request.headers.Cookie;
-      }
-      return event;
-    },
-  });
+      // Filter sensitive data
+      beforeSend(event) {
+        if (event.request?.headers) {
+          delete event.request.headers.Authorization;
+          delete event.request.headers.Cookie;
+        }
+        return event;
+      },
+    });
 
-  console.log('✅ Sentry initialized');
+    console.log('✅ Sentry initialized');
+  } catch (e) {
+    console.warn('⚠️ Sentry initialization failed:', e);
+  }
 }
 
 /**
