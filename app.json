@@ -27,12 +27,14 @@
           "url": "https://sentry.io/",
           "project": "react-native",
           "organization": "andrii-hb",
-          "uploadSourceMaps": false
+          "uploadSourceMaps": false,
+          "uploadNativeSymbols": false
         }
       ]
     ],
     "ios": {
       "supportsTablet": true,
+      "buildNumber": "19",
       "infoPlist": {
         "NSBluetoothAlwaysUsageDescription": "This app uses Bluetooth to connect to your device.",
         "UIBackgroundModes": [
