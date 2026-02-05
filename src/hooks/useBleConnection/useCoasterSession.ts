@@ -1,12 +1,12 @@
-import { useEffect, useRef, useCallback } from "react";
-import { Device } from "react-native-ble-plx";
-import { useSession } from "./useSession";
-import { useProtocolHandler } from "./useProtocolHandler";
-import { useReconnectHandler } from "./useRecconectHandler";
-import { useBLEWrapper } from "../MockBleProvider/useBleWrapper";
-import { getSelectedGender } from "../../utils/storage";
-import { BLE_DEVICE, BLE_PROTOCOL, BLE_TIMEOUTS } from "../../constants/bleConstants";
-import { logger } from "../../utils/logger";
+import { useEffect, useRef, useCallback } from 'react';
+import { Device } from 'react-native-ble-plx';
+import { useSession } from './useSession';
+import { useProtocolHandler } from './useProtocolHandler';
+import { useReconnectHandler } from './useRecconectHandler';
+import { useBLEWrapper } from '../MockBleProvider/useBleWrapper';
+import { getSelectedGender } from '../../utils/storage';
+import { BLE_DEVICE, BLE_PROTOCOL, BLE_TIMEOUTS } from '../../constants/bleConstants';
+import { logger } from '../../utils/logger';
 
 /**
  * Coordinator: BLE + Session Logic + Protocol
@@ -43,7 +43,7 @@ export function useCoasterSession(config: CoasterSessionConfig) {
    */
   const handleBLEData = useCallback((data: { index: number; ml: number; timestampDate?: Date }) => {
     const currentSession = sessionRef.current;
-    if (!currentSession.isActive) return;
+    if (!currentSession.isActive) {return;}
 
     // Use coaster timestamp if available, otherwise fall back to Date.now()
     const eventTime = data.timestampDate?.getTime() ?? Date.now();
@@ -57,18 +57,18 @@ export function useCoasterSession(config: CoasterSessionConfig) {
     const intervalIndex = mapDLToInterval(data.index);
     console.log(
       `💧 DL ${data.index} → Interval ${intervalIndex}: +${data.ml.toFixed(1)}ml` +
-      (data.timestampDate ? ` @ ${data.timestampDate.toLocaleTimeString()}` : ' (no timestamp)')
+      (data.timestampDate ? ` @ ${data.timestampDate.toLocaleTimeString()}` : ' (no timestamp)'),
     );
   }, [mapDLToInterval]);
 
   // Reconnect handler
   const reconnect = useReconnectHandler(isConnected, {
     onReconnect: () => {
-      logger.debug("🔄 Backfill: requesting all logs");
+      logger.debug('🔄 Backfill: requesting all logs');
       requestLogs();
     },
     onBackfillComplete: () => {
-      logger.debug("🔄 Backfill complete");
+      logger.debug('🔄 Backfill complete');
     },
     sessionStartTime: session.session?.startTime ?? null,
     lastDLTimestamp: lastDLTimestampRef.current,
@@ -77,13 +77,15 @@ export function useCoasterSession(config: CoasterSessionConfig) {
   // Protocol handler
   const protocol = useProtocolHandler({
     onDataStart: () => {
-      logger.debug("📊 Data transfer started");
+      logger.debug('📊 Data transfer started');
     },
     onDataComplete: (count) => {
       logger.info(`📊 Data complete: ${count} logs`);
 
-      // Auto-sync if we got 0 logs or >= max expected logs
-      if ((count === 0 || count >= BLE_PROTOCOL.MAX_EXPECTED_LOGS) && !autoSyncRef.current) {
+      // Always send GOAL + SYNC after receiving logs (or END with 0 logs)
+      // Per firmware: "you need to send the other commands with SYNC as the last one"
+      // Sequence: GET ALL → GOAL → SYNC
+      if (!autoSyncRef.current) {
         autoSyncRef.current = true;
         setTimeout(() => {
           sendGoalAndSync();
@@ -91,11 +93,11 @@ export function useCoasterSession(config: CoasterSessionConfig) {
       }
     },
     onGoalAck: () => {
-      logger.info("✅ GOAL confirmed, sending SYNC...");
+      logger.info('✅ GOAL confirmed, sending SYNC...');
       sendTimeSync();
     },
     onSyncAck: () => {
-      logger.info("✅ SYNC complete, session ready");
+      logger.info('✅ SYNC complete, session ready');
       autoSyncRef.current = false;
     },
     onError: (msg) => {
@@ -124,7 +126,7 @@ export function useCoasterSession(config: CoasterSessionConfig) {
       txCharacteristic: BLE_DEVICE.TX_CHARACTERISTIC,
     },
     handleBLEData,
-    handleProtocolLine
+    handleProtocolLine,
   );
 
   /**
@@ -134,7 +136,7 @@ export function useCoasterSession(config: CoasterSessionConfig) {
    * the app re-syncs time and backfills before applying penalties"
    */
   useEffect(() => {
-    if (!isConnected || !device || !ble.isReady) return;
+    if (!isConnected || !device || !ble.isReady) {return;}
 
     const currentSession = sessionRef.current;
 
@@ -147,7 +149,7 @@ export function useCoasterSession(config: CoasterSessionConfig) {
         protocol.reset();
         autoSyncRef.current = false;
 
-        logger.info(`🔄 Session restored, requesting backfill...`);
+        logger.info('🔄 Session restored, requesting backfill...');
 
         // Request all logs from coaster to catch up on missed data
         setTimeout(() => {
@@ -164,6 +166,12 @@ export function useCoasterSession(config: CoasterSessionConfig) {
       autoSyncRef.current = false;
 
       logger.info(`🏁 New session started (${gender})`);
+
+      // Send initial GET ALL to start the command sequence
+      // Firmware expects: GET ALL → GOAL → SYNC
+      setTimeout(() => {
+        requestLogs();
+      }, BLE_TIMEOUTS.BACKFILL_STABILIZATION_DELAY);
     }
   }, [isConnected, device, ble.isReady]);
 
@@ -182,16 +190,16 @@ export function useCoasterSession(config: CoasterSessionConfig) {
 
   const sendTimeSync = useCallback(async () => {
     const now = new Date();
-    const YY = String(now.getFullYear() % 100).padStart(2, "0");
-    const MM = String(now.getMonth() + 1).padStart(2, "0");
-    const DD = String(now.getDate()).padStart(2, "0");
-    const hh = String(now.getHours()).padStart(2, "0");
-    const mm = String(now.getMinutes()).padStart(2, "0");
-    const ss = String(now.getSeconds()).padStart(2, "0");
-    
+    const YY = String(now.getFullYear() % 100).padStart(2, '0');
+    const MM = String(now.getMonth() + 1).padStart(2, '0');
+    const DD = String(now.getDate()).padStart(2, '0');
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    const ss = String(now.getSeconds()).padStart(2, '0');
+
     const ts = `${YY}${MM}${DD}${hh}${mm}${ss}`;
     const cmd = `SYNC ${ts}\r\n`;
-    
+
     const ok = await ble.sendCommand(cmd);
     if (ok) {
       protocol.expectSyncAck();
@@ -202,9 +210,9 @@ export function useCoasterSession(config: CoasterSessionConfig) {
 
   const requestLogs = useCallback(async () => {
     protocol.startDataTransfer();
-    const ok = await ble.sendCommand("GET ALL\r\n");
+    const ok = await ble.sendCommand('GET ALL\r\n');
     if (ok) {
-      logger.info("📥 GET ALL");
+      logger.info('📥 GET ALL');
       ble.resetSeenIndices();
     }
     return ok;
@@ -223,26 +231,26 @@ export function useCoasterSession(config: CoasterSessionConfig) {
     // Session
     session,
     isSessionActive: session.isActive,
-    
+
     // BLE
     isBLEReady: ble.isReady,
     batteryLevel: ble.batteryLevel,
-    
+
     // Protocol
     protocolState: protocol.state,
     dlCount: protocol.dlCount,
     lastError: protocol.lastError,
-    
+
     // Reconnect
     reconnectCount: reconnect.reconnectCount,
     missedIntervals: reconnect.getMissedIntervals(),
-    
+
     // Commands
     sendGoal,
     sendTimeSync,
     requestLogs,
     sendGoalAndSync,
-    
+
     // Actions
     completeSession: () => {
       session.end();
