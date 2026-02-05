@@ -1,0 +1,98 @@
+name: iOS EAS Build & TestFlight
+
+on:
+  push:
+    branches:
+      - master
+      - main
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: 'Build profile'
+        required: true
+        type: choice
+        default: 'production'
+        options:
+          - production
+          - preview
+      submit_to_testflight:
+        description: 'Submit to TestFlight after build'
+        required: true
+        type: boolean
+        default: true
+
+jobs:
+  build-ios:
+    name: Build iOS App
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Determine build profile
+        id: build-config
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "profile=${{ github.event.inputs.profile }}" >> $GITHUB_OUTPUT
+            echo "submit=${{ github.event.inputs.submit_to_testflight }}" >> $GITHUB_OUTPUT
+          else
+            echo "profile=production" >> $GITHUB_OUTPUT
+            echo "submit=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build iOS App
+        run: |
+          eas build --platform ios --profile ${{ steps.build-config.outputs.profile }} --non-interactive --wait
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Submit to TestFlight
+        if: steps.build-config.outputs.submit == 'true' && steps.build-config.outputs.profile == 'production'
+        run: |
+          eas submit --platform ios --profile production --latest --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Get build info
+        id: build-info
+        run: |
+          BUILD_INFO=$(eas build:list --platform=ios --limit=1 --json)
+          BUILD_URL=$(echo $BUILD_INFO | jq -r '.[0].artifacts.buildUrl')
+          BUILD_ID=$(echo $BUILD_INFO | jq -r '.[0].id')
+          BUILD_STATUS=$(echo $BUILD_INFO | jq -r '.[0].status')
+
+          echo "build_url=$BUILD_URL" >> $GITHUB_OUTPUT
+          echo "build_id=$BUILD_ID" >> $GITHUB_OUTPUT
+          echo "build_status=$BUILD_STATUS" >> $GITHUB_OUTPUT
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build Summary
+        run: |
+          echo "### iOS Build Complete 🎉" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Build ID:** ${{ steps.build-info.outputs.build_id }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ${{ steps.build-info.outputs.build_status }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Profile:** ${{ steps.build-config.outputs.profile }}" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ steps.build-config.outputs.submit }}" == "true" ] && [ "${{ steps.build-config.outputs.profile }}" == "production" ]; then
+            echo "**Submitted to:** TestFlight ✅" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Build URL:** ${{ steps.build-info.outputs.build_url }}" >> $GITHUB_STEP_SUMMARY

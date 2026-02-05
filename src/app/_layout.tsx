@@ -1,24 +1,28 @@
-import { useEffect, useState } from "react";
-import { Stack } from "expo-router";
-import { PaperProvider, MD3LightTheme } from "react-native-paper";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { useEffect, useState } from 'react';
+import { Stack } from 'expo-router';
+import { PaperProvider, MD3LightTheme } from 'react-native-paper';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
   useFonts,
   Sora_400Regular,
   Sora_500Medium,
   Sora_600SemiBold,
   Sora_700Bold,
-} from "@expo-google-fonts/sora";
+} from '@expo-google-fonts/sora';
 import {
   Inter_400Regular,
   Inter_500Medium,
   Inter_600SemiBold,
   Inter_700Bold,
-} from "@expo-google-fonts/inter";
-import * as ExpoSplashScreen from "expo-splash-screen";
-import { colors, fontConfig } from "../theme";
-import SplashScreen from "../UI/layout/SplashScreen/SplashScreen";
-import { logger } from "../utils/logger";
+} from '@expo-google-fonts/inter';
+import * as ExpoSplashScreen from 'expo-splash-screen';
+import { colors, fontConfig } from '../theme';
+import SplashScreen from '../UI/layout/SplashScreen/SplashScreen';
+import { logger } from '../utils/logger';
+import { initSentry } from '../utils/sentry';
+
+// Initialize Sentry as early as possible
+initSentry();
 
 const theme = {
   ...MD3LightTheme,
