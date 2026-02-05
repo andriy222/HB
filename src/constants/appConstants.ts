@@ -77,6 +77,9 @@ export const PROTOCOL_COMMANDS = {
   /** Get all logs */
   GET_ALL: 'GET ALL\r\n',
 
+  /** Get battery voltage */
+  GET_BATT: 'GET BATT\r\n',
+
   /** Goal command format */
   GOAL_FORMAT: 'GOAL',
 
