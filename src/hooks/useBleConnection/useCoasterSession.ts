@@ -221,10 +221,39 @@ export function useCoasterSession(config: CoasterSessionConfig) {
   const requestBattery = useCallback(async () => {
     const ok = await ble.sendCommand('GET BATT\r\n');
     if (ok) {
-      logger.info('🔋 GET BATT');
+      logger.debug('🔋 GET BATT (keep-alive)');
     }
     return ok;
   }, [ble]);
+
+  /**
+   * Keep-alive: Coaster disconnects after 25s without messages
+   * Send GET BATT every 20s to maintain connection
+   */
+  const keepAliveRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (isConnected && ble.isReady) {
+      // Start keep-alive interval
+      keepAliveRef.current = setInterval(() => {
+        ble.sendCommand('GET BATT\r\n').then((ok) => {
+          if (ok) {
+            logger.debug('💓 Keep-alive ping');
+          }
+        });
+      }, BLE_TIMEOUTS.KEEP_ALIVE_INTERVAL);
+
+      logger.info('💓 Keep-alive started (20s interval)');
+    }
+
+    return () => {
+      if (keepAliveRef.current) {
+        clearInterval(keepAliveRef.current);
+        keepAliveRef.current = null;
+        logger.debug('💓 Keep-alive stopped');
+      }
+    };
+  }, [isConnected, ble.isReady]);
 
   /**
    * Send GOAL then SYNC (auto flow)
