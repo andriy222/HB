@@ -136,8 +136,6 @@ export function useCoasterSession(config: CoasterSessionConfig) {
   useEffect(() => {
     if (!isConnected || !device || !ble.isReady) {return;}
 
-    const currentSession = sessionRef.current;
-
     // Check if we have an active restored session
     if (currentSession.session?.isActive && currentSession.session?.startTime) {
       // Session was restored from storage - request backfill

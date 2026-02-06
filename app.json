@@ -2,7 +2,7 @@
   "expo": {
     "name": "hybit",
     "slug": "hybit",
-    "version": "1.0.0",
+    "version": "1.0.20",
     "scheme": "hybit",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -25,6 +25,7 @@
     ],
     "ios": {
       "supportsTablet": true,
+      "buildNumber": "19",
       "infoPlist": {
         "NSBluetoothAlwaysUsageDescription": "This app uses Bluetooth to connect to your device.",
         "UIBackgroundModes": [
@@ -56,14 +57,14 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "owner": "andrii-00",
+    "owner": "apelekhs-organization",
     "runtimeVersion": {
       "policy": "appVersion"
     },
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "dc9a6fec-0dfd-4d41-91c6-cd2a614584db"
+        "projectId": "e6125f81-4eb7-4d27-9156-ea267448c7de"
       }
     }
   }
