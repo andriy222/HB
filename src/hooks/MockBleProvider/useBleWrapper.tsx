@@ -22,7 +22,7 @@ interface BLEWrapperConfig {
 
 export function useBLEWrapper(
   config: BLEWrapperConfig,
-  onDataReceived?: (data: { index: number; ml: number }) => void,
+  onDataReceived?: (data: { index: number; ml: number; timestampDate?: Date }) => void,
   onLineReceived?: (line: string) => void
 ) {
   const { device, isConnected, forceMock, ...bleConfig } = config;
