@@ -2,7 +2,7 @@
   "expo": {
     "name": "hybit",
     "slug": "hybit",
-    "version": "1.0.0",
+    "version": "1.0.20",
     "scheme": "hybit",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
