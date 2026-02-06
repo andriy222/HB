@@ -135,7 +135,7 @@ export function useCoasterSession(config: CoasterSessionConfig) {
    */
   useEffect(() => {
     if (!isConnected || !device || !ble.isReady) return;
-
+    
     const currentSession = sessionRef.current;
 
     // Check if we have an active restored session
@@ -211,6 +211,18 @@ export function useCoasterSession(config: CoasterSessionConfig) {
   }, [ble, protocol]);
 
   /**
+   * Request battery level from device
+   * Device responds with "DEV <0-100>" line
+   */
+  const requestBattery = useCallback(async () => {
+    const ok = await ble.sendCommand('GET BATT\r\n');
+    if (ok) {
+      logger.info('🔋 GET BATT');
+    }
+    return ok;
+  }, [ble]);
+
+  /**
    * Send GOAL then SYNC (auto flow)
    */
   const sendGoalAndSync = useCallback(async () => {
@@ -241,6 +253,7 @@ export function useCoasterSession(config: CoasterSessionConfig) {
     sendGoal,
     sendTimeSync,
     requestLogs,
+    requestBattery,
     sendGoalAndSync,
     
     // Actions

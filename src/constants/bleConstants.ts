@@ -9,16 +9,16 @@
  */
 export const BLE_DEVICE = {
   /** Name of the target Bluetooth device */
-  TARGET_NAME: "Hybit NeuraFlow",
+  TARGET_NAME: 'Hybit NeuraFlow',
 
   /** Service UUID for Nordic UART Service (NUS) */
-  SERVICE_UUID: "6e400001-b5a3-f393-e0a9-e50e24dcca9e",
+  SERVICE_UUID: '6e400001-b5a3-f393-e0a9-e50e24dcca9e',
 
   /** RX Characteristic UUID (receive data from device) */
-  RX_CHARACTERISTIC: "6e400003-b5a3-f393-e0a9-e50e24dcca9e",
+  RX_CHARACTERISTIC: '6e400003-b5a3-f393-e0a9-e50e24dcca9e',
 
   /** TX Characteristic UUID (send data to device) */
-  TX_CHARACTERISTIC: "6e400002-b5a3-f393-e0a9-e50e24dcca9e",
+  TX_CHARACTERISTIC: '6e400002-b5a3-f393-e0a9-e50e24dcca9e',
 } as const;
 
 /**
@@ -71,8 +71,8 @@ export const BLE_PROTOCOL = {
  * Connection Status Types
  */
 export type ConnectionStatus =
-  | "disconnected"
-  | "scanning"
-  | "connecting"
-  | "connected"
-  | "reconnecting";
+  | 'disconnected'
+  | 'scanning'
+  | 'connecting'
+  | 'connected'
+  | 'reconnecting';

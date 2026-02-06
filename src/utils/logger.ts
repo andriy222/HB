@@ -1,4 +1,4 @@
-
+import { addBreadcrumb } from './sentry';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'ble';
 
@@ -41,8 +41,8 @@ export function getLoggerConfig(): LoggerConfig {
  * Check if a log level should be logged
  */
 function shouldLog(level: LogLevel): boolean {
-  if (!config.enabled) return false;
-  if (level === 'ble' && !config.enableBleLogging) return false;
+  if (!config.enabled) {return false;}
+  if (level === 'ble' && !config.enableBleLogging) {return false;}
   return LOG_LEVELS[level] >= LOG_LEVELS[config.minLevel];
 }
 
@@ -101,6 +101,8 @@ export function logError(message: string, error?: Error | any) {
   if (shouldLog('error')) {
     console.error(...formatMessage('error', message, error));
   }
+  // Always send errors to Sentry
+  addBreadcrumb(message, 'error', 'error', { error: String(error) });
 }
 
 /**
@@ -110,6 +112,8 @@ export function logBLE(message: string, data?: any) {
   if (shouldLog('ble')) {
     console.log(...formatMessage('ble', message, data));
   }
+  // Send BLE logs to Sentry as breadcrumbs for debugging
+  addBreadcrumb(message, 'bluetooth', 'info', data);
 }
 
 /**
