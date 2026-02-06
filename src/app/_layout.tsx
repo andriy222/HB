@@ -19,10 +19,6 @@ import * as ExpoSplashScreen from 'expo-splash-screen';
 import { colors, fontConfig } from '../theme';
 import SplashScreen from '../UI/layout/SplashScreen/SplashScreen';
 import { logger } from '../utils/logger';
-import { initSentry } from '../utils/sentry';
-
-// Initialize Sentry as early as possible
-initSentry();
 
 const theme = {
   ...MD3LightTheme,

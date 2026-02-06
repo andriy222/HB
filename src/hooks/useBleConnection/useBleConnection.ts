@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Device } from 'react-native-ble-plx';
 import { base64Decode, base64Encode } from '../../utils/base64';
-import { captureBLEError, trackBLEEvent } from '../../utils/sentry';
 import { logger } from '../../utils/logger';
 import { REGEX_PATTERNS, VALIDATION, PROTOCOL_COMMANDS } from '../../constants/appConstants';
 
@@ -168,7 +167,6 @@ export function useBLEConnection(
         (error, characteristic) => {
           if (error) {
             logger.warn('BLE RX error', error);
-            captureBLEError('subscribe', error, device.id);
             return;
           }
 
@@ -187,12 +185,9 @@ export function useBLEConnection(
 
       subscriptionRef.current = subscription;
       setIsReady(true);
-
-      trackBLEEvent('rx_subscribed', { deviceId: device.id });
       logger.ble('RX subscribed successfully');
     } catch (e) {
       logger.error('Subscribe failed', e);
-      captureBLEError('subscribe', e as Error, device?.id);
       setIsReady(false);
     }
   }, [device, isConnected, targetService, rxCharacteristic, decodeBase64, handleLine]);
@@ -239,7 +234,6 @@ export function useBLEConnection(
       }
     } catch (e) {
       logger.error('Send failed', e);
-      captureBLEError('send_command', e as Error, device?.id);
       return false;
     }
   }, [device, isConnected, targetService, txCharacteristic]);
