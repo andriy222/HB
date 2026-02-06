@@ -162,6 +162,12 @@ export function useCoasterSession(config: CoasterSessionConfig) {
       autoSyncRef.current = false;
 
       logger.info(`🏁 New session started (${gender})`);
+
+      // Firmware requires: GET ALL → GOAL → SYNC sequence
+      // Request logs first, then GOAL/SYNC will be sent after data complete
+      setTimeout(() => {
+        requestLogs();
+      }, BLE_TIMEOUTS.BACKFILL_STABILIZATION_DELAY);
     }
   }, [isConnected, device, ble.isReady]);
 
