@@ -25,6 +25,7 @@
     ],
     "ios": {
       "supportsTablet": true,
+      "buildNumber": "19",
       "infoPlist": {
         "NSBluetoothAlwaysUsageDescription": "This app uses Bluetooth to connect to your device.",
         "UIBackgroundModes": [
