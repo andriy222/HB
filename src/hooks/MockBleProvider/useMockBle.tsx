@@ -14,7 +14,7 @@ interface MockBLEConfig {
 
 export function useMockBLE(
   isConnected: boolean,
-  onDataReceived?: (data: { index: number; ml: number }) => void,
+  onDataReceived?: (data: { index: number; ml: number; timestampDate?: Date }) => void,
   onLineReceived?: (line: string) => void,
   config: MockBLEConfig = {}
 ) {
