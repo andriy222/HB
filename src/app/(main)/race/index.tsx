@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import AuthBackground from "../../../UI/layout/backgrounds/AuthBackground";
-import { clearStorage, debugStorage, storage } from "../../../store/bleStore";
+import { clearStorage, debugStorage } from "../../../store/bleStore";
 import Podium from "../../../components/Podium/Podium";
 import BottomNavigation from "../../../components/BottomNavigation/BottomNavigation";
 import SpriteAnimator from "../../../components/SpriteAnimator/SpriteAnimator";
@@ -74,7 +74,7 @@ const Main = () => {
     debugStorage();
     const gender = getSelectedGender();
     setSelectedGender(gender);
-  }, [storage]);
+  }, []);
 
   const avatarAnimation: AvatarAnimation = useMemo(() => {
     const character = selectedGender === "male" ? MALE : FEMALE;
