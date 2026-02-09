@@ -48,6 +48,9 @@ export const BLE_TIMEOUTS = {
 
   /** Delay after auto-sync trigger (milliseconds) */
   AUTO_SYNC_DELAY: 250,
+
+  /** Keep-alive interval - coaster disconnects after 25s without messages */
+  KEEP_ALIVE_INTERVAL: 20000, // 20 seconds (safety margin from 25s timeout)
 } as const;
 
 /**
