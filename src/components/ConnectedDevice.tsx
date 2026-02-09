@@ -516,6 +516,28 @@ export default function ConnectedDevice({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connectedDevice?.id, isConnected]);
 
+  // Keep-alive: Coaster disconnects after 25s without messages
+  // Send GET BATT every 20s to maintain connection
+  const keepAliveRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (connectedDevice && isConnected && targetTxRef.current) {
+      // Start keep-alive interval
+      keepAliveRef.current = setInterval(() => {
+        if (targetTxRef.current && !isDownloadingRef.current) {
+          sendAsciiCommand("GET BATT\r\n");
+        }
+      }, 20000); // 20 seconds
+
+      return () => {
+        if (keepAliveRef.current) {
+          clearInterval(keepAliveRef.current);
+          keepAliveRef.current = null;
+        }
+      };
+    }
+  }, [connectedDevice?.id, isConnected]);
+
   const requestLogs = () => {
     clearLogsAndEvents();
     clearTimeout(dlIdleTimerRef.current as any);
@@ -751,19 +773,22 @@ export default function ConnectedDevice({
       return;
     }
     try {
-      await connectedDevice.writeCharacteristicWithResponseForService(
+      // Nordic UART Service TX typically uses Write Without Response
+      await connectedDevice.writeCharacteristicWithoutResponseForService(
         tx.service,
         tx.char,
         asciiToB64(ascii)
       );
+      log(`TX: ${ascii.trim()}`);
     } catch (e) {
-      // Fallback to write without response (some NUS TX are WNR only)
+      // Fallback to write with response if without response fails
       try {
-        await connectedDevice.writeCharacteristicWithoutResponseForService(
+        await connectedDevice.writeCharacteristicWithResponseForService(
           tx.service,
           tx.char,
           asciiToB64(ascii)
         );
+        log(`TX (with response): ${ascii.trim()}`);
       } catch (e2) {
         logger.warn("Write failed:", e2);
         log("Write failed", "err");
