@@ -16,6 +16,7 @@ import {
   Subscription,
 } from "react-native-ble-plx";
 import { logger } from "../../utils/logger";
+import { trackBLEEvent, captureBLEError } from "../../utils/sentry";
 
 // ---- base64 helpers (RN-safe, no Buffer dependency) ----
 const base64abc =
@@ -418,28 +419,28 @@ export default function ConnectedDevice({
   async function runFlow(): Promise<void> {
     try {
       clearLogsAndEvents();
-      logger.info("[BLE] runFlow() started", { deviceId: connectedDevice?.id, deviceName: connectedDevice?.name });
+      trackBLEEvent("runFlow_started", { deviceId: connectedDevice?.id, deviceName: connectedDevice?.name });
       log("Discovering services & characteristics…");
 
       const stillConnected = await connectedDevice.isConnected();
-      logger.info("[BLE] isConnected check", { stillConnected, deviceId: connectedDevice?.id });
+      trackBLEEvent("isConnected_check", { stillConnected, deviceId: connectedDevice?.id });
       if (!stillConnected) {
         log("Device no longer connected", "err");
-        logger.warn("[BLE] Device not connected, aborting runFlow");
+        captureBLEError("runFlow", "Device not connected at start", connectedDevice?.id);
         return;
       }
 
       let ready: Device;
       try {
-        logger.info("[BLE] Starting service discovery...");
+        trackBLEEvent("service_discovery_start", {});
         ready = await connectedDevice.discoverAllServicesAndCharacteristics();
-        logger.info("[BLE] Service discovery succeeded");
+        trackBLEEvent("service_discovery_success", {});
       } catch (e) {
         // transient discovery failure is common; retry once quickly
-        logger.warn("[BLE] Service discovery failed, retrying...", { error: String(e) });
+        trackBLEEvent("service_discovery_retry", { error: String(e) });
         await delay(150);
         ready = await connectedDevice.discoverAllServicesAndCharacteristics();
-        logger.info("[BLE] Service discovery retry succeeded");
+        trackBLEEvent("service_discovery_retry_success", {});
       }
       // Optional: increase MTU and connection priority on Android to improve stability
       if (Platform.OS === "android") {
@@ -451,7 +452,7 @@ export default function ConnectedDevice({
         } catch {}
       }
       const svcs = await ready.services();
-      logger.info("[BLE] Services found", { count: svcs.length, uuids: svcs.map(s => s.uuid) });
+      trackBLEEvent("services_found", { count: svcs.length, uuids: svcs.map(s => s.uuid) });
       setServices(svcs);
 
       let foundSvc: Service | null = null;
@@ -473,13 +474,13 @@ export default function ConnectedDevice({
 
         if (!foundSvc && s.uuid.toLowerCase() === TARGET_SERVICE) {
           foundSvc = s;
-          logger.info("[BLE] NUS Service found!", { serviceUuid: s.uuid });
+          trackBLEEvent("NUS_service_found", { serviceUuid: s.uuid });
           const preferredTx = chs.find((c) => c.uuid.toLowerCase() === NUS_TX);
           const preferredRx = chs.find((c) => c.uuid.toLowerCase() === NUS_RX);
-          logger.info("[BLE] Looking for TX/RX", {
+          trackBLEEvent("TX_RX_search", {
             preferredTxFound: !!preferredTx,
             preferredRxFound: !!preferredRx,
-            allChars: chs.map(c => ({ uuid: c.uuid, writable: c.isWritableWithoutResponse, notifiable: c.isNotifiable }))
+            charCount: chs.length
           });
           tx =
             preferredTx ||
@@ -494,13 +495,13 @@ export default function ConnectedDevice({
 
       if (!foundSvc || !tx || !rx) {
         log("NUS service or TX/RX characteristic not found", "err");
-        logger.error("[BLE] NUS service or TX/RX not found", { foundSvc: !!foundSvc, tx: !!tx, rx: !!rx });
+        captureBLEError("runFlow", `NUS/TX/RX not found: svc=${!!foundSvc} tx=${!!tx} rx=${!!rx}`, connectedDevice?.id);
         return;
       }
 
       targetTxRef.current = { service: foundSvc.uuid, char: tx.uuid };
       targetRxRef.current = { service: foundSvc.uuid, char: rx.uuid };
-      logger.info("[BLE] TX/RX set", { txUuid: tx.uuid, rxUuid: rx.uuid });
+      trackBLEEvent("TX_RX_set", { txUuid: tx.uuid, rxUuid: rx.uuid });
       log(`NUS found. TX=${tx.uuid} RX=${rx.uuid}`);
 
       // Prepare subscription to RX; avoid Android cancelTransaction crash
@@ -525,23 +526,23 @@ export default function ConnectedDevice({
       // Coaster disconnects after 25s without messages, so we ping every 20s
       startKeepAlive();
     } catch (e) {
-      logger.error("[BLE] runFlow FAILED with error", { error: String(e), stack: (e as Error)?.stack });
+      captureBLEError("runFlow", String(e), connectedDevice?.id);
       log(`Flow error: ${String(e)}`, "err");
     }
   }
 
   // Auto-run when device prop changes
   useEffect(() => {
-    logger.info("[BLE] useEffect triggered", {
+    trackBLEEvent("useEffect_triggered", {
       hasConnectedDevice: !!connectedDevice,
       deviceId: connectedDevice?.id,
       isConnected,
     });
     if (connectedDevice && isConnected) {
-      logger.info("[BLE] Starting runFlow from useEffect");
+      trackBLEEvent("runFlow_starting", { deviceId: connectedDevice?.id });
       runFlow();
     } else {
-      logger.info("[BLE] Skipping runFlow", { reason: !connectedDevice ? 'no device' : 'not connected' });
+      trackBLEEvent("runFlow_skipped", { reason: !connectedDevice ? 'no device' : 'not connected' });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connectedDevice?.id, isConnected]);
@@ -812,21 +813,28 @@ export default function ConnectedDevice({
 
   const sendAsciiCommand = async (ascii: string) => {
     const tx = targetTxRef.current;
-    logger.info("[BLE] sendAsciiCommand called", { command: ascii.trim(), txSet: !!tx });
+    trackBLEEvent("sendCommand_called", { command: ascii.trim(), txSet: !!tx });
     if (!tx) {
       log("Cannot send: TX not set", "err");
-      logger.error("[BLE] TX not set, cannot send command");
+      captureBLEError("sendCommand", "TX not set", connectedDevice?.id);
       return;
     }
 
     const b64Data = asciiToB64(ascii);
-    logger.info("[BLE] Attempting write", {
+    const isStillConnected = await connectedDevice.isConnected().catch(() => false);
+    trackBLEEvent("write_attempt", {
       service: tx.service,
       char: tx.char,
       command: ascii.trim(),
       b64Length: b64Data.length,
-      isConnected: await connectedDevice.isConnected().catch(() => false)
+      isConnected: isStillConnected
     });
+
+    if (!isStillConnected) {
+      captureBLEError("sendCommand", "Device disconnected before write", connectedDevice?.id);
+      log("Cannot send: device disconnected", "err");
+      return;
+    }
 
     try {
       // Nordic UART Service TX typically uses Write Without Response
@@ -835,10 +843,10 @@ export default function ConnectedDevice({
         tx.char,
         b64Data
       );
-      logger.info("[BLE] Write WITHOUT response SUCCESS", { command: ascii.trim() });
+      trackBLEEvent("write_success", { command: ascii.trim(), mode: "without_response" });
       log(`TX: ${ascii.trim()}`);
     } catch (e) {
-      logger.warn("[BLE] Write WITHOUT response FAILED, trying WITH response", { error: String(e), command: ascii.trim() });
+      trackBLEEvent("write_failed_retry", { error: String(e), command: ascii.trim() });
       // Fallback to write with response if without response fails
       try {
         await connectedDevice.writeCharacteristicWithResponseForService(
@@ -846,10 +854,10 @@ export default function ConnectedDevice({
           tx.char,
           b64Data
         );
-        logger.info("[BLE] Write WITH response SUCCESS", { command: ascii.trim() });
+        trackBLEEvent("write_success", { command: ascii.trim(), mode: "with_response" });
         log(`TX (with response): ${ascii.trim()}`);
       } catch (e2) {
-        logger.error("[BLE] Write WITH response also FAILED", { error: String(e2), command: ascii.trim() });
+        captureBLEError("sendCommand", `Write failed: ${String(e2)}`, connectedDevice?.id);
         log("Write failed", "err");
       }
     }
