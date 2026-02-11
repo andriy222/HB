@@ -137,7 +137,7 @@ export function useCoasterSession(config: CoasterSessionConfig) {
     if (!isConnected || !device || !ble.isReady) {return;}
 
     // Check if we have an active restored session
-    if (currentSession.session?.isActive && currentSession.session?.startTime) {
+    if (session.session?.isActive && session.session?.startTime) {
       // Session was restored from storage - request backfill
       if (!sessionStartedRef.current) {
         sessionStartedRef.current = true;

@@ -1,46 +1,58 @@
-import React, { useEffect, useState, useMemo } from "react";
-import AuthBackground from "../../../UI/layout/backgrounds/AuthBackground";
-import { clearStorage, debugStorage } from "../../../store/bleStore";
-import Podium from "../../../components/Podium/Podium";
-import BottomNavigation from "../../../components/BottomNavigation/BottomNavigation";
-import SpriteAnimator from "../../../components/SpriteAnimator/SpriteAnimator";
+import React, { useEffect, useState, useMemo } from 'react';
+import AuthBackground from '../../../UI/layout/backgrounds/AuthBackground';
+import { clearStorage, debugStorage } from '../../../store/bleStore';
+import Podium from '../../../components/Podium/Podium';
+import BottomNavigation from '../../../components/BottomNavigation/BottomNavigation';
+import SpriteAnimator from '../../../components/SpriteAnimator/SpriteAnimator';
 import {
   AVATAR_SIZE,
   FEMALE,
   MALE,
   AvatarAnimation,
-} from "../../../utils/constants";
-import { Gender, getSelectedGender } from "../../../utils/storage";
-import { View, StyleSheet, Dimensions, Text, Image } from "react-native";
-import ConnectionAlerts from "../../../components/ConnectionAlert/ConnectionAlerts";
-import PaperButton from "../../../UI/PaperButton/PaperButton";
-import PaperProgressBar from "../../../UI/PaperProgressBar/PaperProgressBar";
-import { SESSION_CONFIG } from "../../../constants/sessionConstants";
-import { textPresets } from "../../../theme";
-import { useSession } from "../../../hooks/useBleConnection/useSession";
+} from '../../../utils/constants';
+import { Gender, getSelectedGender } from '../../../utils/storage';
+import { View, StyleSheet, Dimensions, Text, Image } from 'react-native';
+import ConnectionAlerts from '../../../components/ConnectionAlert/ConnectionAlerts';
+import PaperButton from '../../../UI/PaperButton/PaperButton';
+import PaperProgressBar from '../../../UI/PaperProgressBar/PaperProgressBar';
+import { SESSION_CONFIG } from '../../../constants/sessionConstants';
+import { textPresets } from '../../../theme';
+import { useMasterCoordinator } from '../../../hooks/useBleConnection/useMasterCoordinator';
+import { useBleScanWithMock } from '../../../hooks/MockBleProvider/useBleScanWithMock';
 import {
   getBestRun,
   getLastRaceDistance,
   setLastRaceDistance,
   clearLastRaceDistance,
-} from "../../../storage/appStorage";
+} from '../../../storage/appStorage';
 
-import { useGlobalConnectionMonitor } from "../../../hooks/useConnectionMonitor";
-import { logger } from "../../../utils/logger";
-import { useRouter } from "expo-router";
-import { mmkvStorage } from "../../../storage/appStorage";
+import { useGlobalConnectionMonitor } from '../../../hooks/useConnectionMonitor';
+import { logger } from '../../../utils/logger';
+import { useRouter } from 'expo-router';
+import { mmkvStorage } from '../../../storage/appStorage';
 
-const trophy = require("../../../../assets/win.png");
-const { width } = Dimensions.get("window");
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const trophy = require('../../../../assets/win.png');
+const { width } = Dimensions.get('window');
 
 const Main = () => {
   const router = useRouter();
-  const [selectedGender, setSelectedGender] = useState<Gender>("male");
+  const [selectedGender, setSelectedGender] = useState<Gender>('male');
   const [bestRun, setBestRun] = useState<number>(0);
   const [lastRaceDistance, setLastRaceDistanceState] = useState<number>(0);
   const [wasActive, setWasActive] = useState(false);
 
-  const session = useSession();
+  // Get BLE device and connection state
+  const { connectedDevice, linkUp } = useBleScanWithMock();
+
+  // Use master coordinator (BLE + Session combined)
+  const coordinator = useMasterCoordinator({
+    device: connectedDevice,
+    isConnected: linkUp,
+  });
+
+  // For backwards compatibility, alias session
+  const session = coordinator.session;
   const monitor = useGlobalConnectionMonitor();
 
   const isFinished = !session.isActive && lastRaceDistance > 0;
@@ -59,7 +71,7 @@ const Main = () => {
 
   useEffect(() => {
     if (wasActive && !session.isActive) {
-      logger.info("🏁 Race finished! Distance:", lastRaceDistance);
+      logger.info('🏁 Race finished! Distance:', lastRaceDistance);
     }
     setWasActive(session.isActive);
   }, [session.isActive, wasActive, lastRaceDistance]);
@@ -77,7 +89,7 @@ const Main = () => {
   }, []);
 
   const avatarAnimation: AvatarAnimation = useMemo(() => {
-    const character = selectedGender === "male" ? MALE : FEMALE;
+    const character = selectedGender === 'male' ? MALE : FEMALE;
 
     if (!session.isActive) {
       return {
@@ -87,11 +99,11 @@ const Main = () => {
     }
 
     switch (session.avatarState) {
-      case "normal":
+      case 'normal':
         return character.normalRunning;
-      case "tired":
+      case 'tired':
         return character.tiredRunning;
-      case "exhausted":
+      case 'exhausted':
         return character.exhausted;
       default:
         return {
@@ -105,17 +117,17 @@ const Main = () => {
 
   function handleStart() {
     if (session.isActive) {
-      logger.warn("⚠️ Session already active");
+      logger.warn('⚠️ Session already active');
       return;
     }
-    logger.info("🏁 Starting new race...");
+    logger.info('🏁 Starting new race...');
     clearLastRaceDistance();
     setLastRaceDistanceState(0);
     session.start(selectedGender);
   }
 
   function handleMockDrink() {
-    logger.info("🗑️ Clearing all storage and resetting app...");
+    logger.info('🗑️ Clearing all storage and resetting app...');
     debugStorage();
 
     // Clear MMKV storage (includes ble-onboarding)
@@ -127,11 +139,11 @@ const Main = () => {
     // Reset zustand stor
 
     debugStorage();
-    logger.info("✅ Storage cleared, redirecting to welcome...");
+    logger.info('✅ Storage cleared, redirecting to welcome...');
 
     // Redirect to welcome screen
     setTimeout(() => {
-      router.replace("/welcome");
+      router.replace('/welcome');
     }, 500);
   }
 
@@ -158,7 +170,7 @@ const Main = () => {
               <PaperProgressBar progress={staminaRatio} />
               <Text style={styles.progressText}>
                 {session.formatDistance(session.distance)}
-                <Text style={styles.progressTextKM}>km</Text> /{" "}
+                <Text style={styles.progressTextKM}>km</Text> /{' '}
                 {SESSION_CONFIG.maxDistance}
                 <Text style={styles.progressTextKM}>km</Text>
               </Text>
@@ -190,7 +202,7 @@ const Main = () => {
               </Text>
             )}
           </View>
-          {session.isActive && typeof __DEV__ !== "undefined" && __DEV__ && (
+          {session.isActive && typeof __DEV__ !== 'undefined' && __DEV__ && (
             <PaperButton onPress={handleMockDrink} variant="big">
               +100ml (Test)
             </PaperButton>
@@ -203,39 +215,33 @@ const Main = () => {
 
 const styles = StyleSheet.create({
   runningContainer: {
-    position: "relative",
+    position: 'relative',
     bottom: 80,
   },
   progress: {
-    flexDirection: "column",
-    alignItems: "center",
+    flexDirection: 'column',
+    alignItems: 'center',
     gap: width * 0.05,
   },
   avatarContainer: {
-    position: "relative",
+    position: 'relative',
     top: width / 3.8,
     left: width * 0.13,
     zIndex: 2,
   },
   dataContainer: {
-    position: "relative",
+    position: 'relative',
     bottom: width * 0.1,
-    flexDirection: "column",
-    alignItems: "center",
+    flexDirection: 'column',
+    alignItems: 'center',
     gap: width * 0.05,
   },
   progressText: {
     ...textPresets.progressText,
   },
-  timeText: {
-    ...textPresets.progressText,
-    fontSize: 14,
-    marginTop: 5,
-    color: "#00000066",
-  },
   bestRun: {
     ...textPresets.bestRun,
-    color: "#00000099",
+    color: '#00000099',
   },
   btn: {
     width: 230,
@@ -243,11 +249,11 @@ const styles = StyleSheet.create({
   },
   progressTextKM: {
     fontSize: 20,
-    color: "#00000099",
+    color: '#00000099',
   },
   finish: {
-    alignItems: "center",
-    flexDirection: "row",
+    alignItems: 'center',
+    flexDirection: 'row',
     gap: width * 0.03,
   },
   trophy: {
@@ -260,11 +266,11 @@ const styles = StyleSheet.create({
   },
   finishDistanceKM: {
     fontSize: 32,
-    color: "#00000099",
+    color: '#00000099',
   },
   stat: {
-    flexDirection: "column",
-    alignItems: "center",
+    flexDirection: 'column',
+    alignItems: 'center',
     gap: width * 0.02,
   },
 });
