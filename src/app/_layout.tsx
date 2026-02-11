@@ -22,7 +22,7 @@ import { logger } from '../utils/logger';
 import { initSentry } from '../utils/sentry';
 
 // Initialize Sentry as early as possible
-initSentry();
+initSentry("https://421ae2812236ac7533a9a98f6c5a5eae@o4510822396264448.ingest.de.sentry.io/4510869647130704");
 
 const theme = {
   ...MD3LightTheme,
