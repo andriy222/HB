@@ -14,14 +14,14 @@ import { useSession } from "../../../hooks/useBleConnection/useSession";
 import { useCoasterConnection } from "../../../store/connectionStore";
 import { textPresets } from "../../../theme";
 import { SESSION_CONFIG, BLE_CONFIG } from "../../../constants/sessionConstants";
-import { useBleScanWithMock } from "../../../hooks/MockBleProvider/useBleScanWithMock";
+import { useBle } from "../../../providers/BleProvider";
 
 const { width } = Dimensions.get("window");
 
 const TestBLE = () => {
   const session = useSession();
   const coasterConnection = useCoasterConnection();
-  const { connectedDevice } = useBleScanWithMock();
+  const { connectedDevice } = useBle();
   const [currentTime, setCurrentTime] = useState(new Date());
 
   // Detect if running on simulator

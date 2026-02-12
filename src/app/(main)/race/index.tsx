@@ -18,7 +18,7 @@ import PaperProgressBar from '../../../UI/PaperProgressBar/PaperProgressBar';
 import { SESSION_CONFIG } from '../../../constants/sessionConstants';
 import { textPresets } from '../../../theme';
 import { useMasterCoordinator } from '../../../hooks/useBleConnection/useMasterCoordinator';
-import { useBleScanWithMock } from '../../../hooks/MockBleProvider/useBleScanWithMock';
+import { useBle } from '../../../providers/BleProvider';
 import {
   getBestRun,
   getLastRaceDistance,
@@ -43,7 +43,7 @@ const Main = () => {
   const [wasActive, setWasActive] = useState(false);
 
   // Get BLE device and connection state
-  const { connectedDevice, linkUp } = useBleScanWithMock();
+  const { connectedDevice, linkUp } = useBle();
 
   // Use master coordinator (BLE + Session combined)
   const coordinator = useMasterCoordinator({
