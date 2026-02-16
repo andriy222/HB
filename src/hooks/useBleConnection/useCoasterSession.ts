@@ -7,6 +7,7 @@ import { useBLEWrapper } from '../MockBleProvider/useBleWrapper';
 import { getSelectedGender } from '../../utils/storage';
 import { BLE_DEVICE, BLE_PROTOCOL, BLE_TIMEOUTS } from '../../constants/bleConstants';
 import { logger } from '../../utils/logger';
+import { trackBLEEvent } from '../../utils/sentry';
 
 /**
  * Coordinator: BLE + Session Logic + Protocol
@@ -25,6 +26,10 @@ export function useCoasterSession(config: CoasterSessionConfig) {
   const sessionStartedRef = useRef(false);
   const autoSyncRef = useRef(false);
   const lastDLTimestampRef = useRef<number | null>(null);
+  const lastGetAllTimeRef = useRef<number>(0);
+
+  /** Minimum interval between GET ALL commands (5 seconds) */
+  const GET_ALL_COOLDOWN = 5000;
 
   // Store session in ref to avoid recreating callbacks
   const sessionRef = useRef(session);
@@ -78,13 +83,17 @@ export function useCoasterSession(config: CoasterSessionConfig) {
   const protocol = useProtocolHandler({
     onDataStart: () => {
       logger.debug('📊 Data transfer started');
+      trackBLEEvent('protocol_sdt_received');
     },
     onDataComplete: (count) => {
       logger.info(`📊 Data complete: ${count} logs`);
+      trackBLEEvent('protocol_end_received', { dlCount: count });
 
       // Auto-sync if we got 0 logs or >= max expected logs
       if ((count === 0 || count >= BLE_PROTOCOL.MAX_EXPECTED_LOGS) && !autoSyncRef.current) {
         autoSyncRef.current = true;
+        logger.info(`📊 Auto-sync triggered (count=${count}), sending GOAL+SYNC...`);
+        trackBLEEvent('auto_sync_triggered', { dlCount: count });
         setTimeout(() => {
           sendGoalAndSync();
         }, BLE_TIMEOUTS.AUTO_SYNC_DELAY);
@@ -92,14 +101,17 @@ export function useCoasterSession(config: CoasterSessionConfig) {
     },
     onGoalAck: () => {
       logger.info('✅ GOAL confirmed, sending SYNC...');
+      trackBLEEvent('protocol_goal_ack');
       sendTimeSync();
     },
     onSyncAck: () => {
       logger.info('✅ SYNC complete, session ready');
+      trackBLEEvent('protocol_sync_ack');
       autoSyncRef.current = false;
     },
     onError: (msg) => {
       logger.error(`❌ Coaster error: ${msg}`);
+      trackBLEEvent('protocol_error', { message: msg });
     },
   });
 
@@ -205,10 +217,22 @@ export function useCoasterSession(config: CoasterSessionConfig) {
   }, [ble, protocol]);
 
   const requestLogs = useCallback(async () => {
+    // Rate limit: prevent repeated GET ALL within cooldown period
+    const now = Date.now();
+    if (now - lastGetAllTimeRef.current < GET_ALL_COOLDOWN) {
+      logger.warn(`⏳ GET ALL throttled (cooldown ${GET_ALL_COOLDOWN}ms)`);
+      trackBLEEvent('get_all_throttled', {
+        timeSinceLast: now - lastGetAllTimeRef.current,
+      });
+      return false;
+    }
+    lastGetAllTimeRef.current = now;
+
     protocol.startDataTransfer();
     const ok = await ble.sendCommand('GET ALL\r\n');
     if (ok) {
-      logger.info('📥 GET ALL');
+      logger.info('📥 GET ALL sent');
+      trackBLEEvent('get_all_sent');
       ble.resetSeenIndices();
     }
     return ok;
@@ -216,7 +240,7 @@ export function useCoasterSession(config: CoasterSessionConfig) {
 
   /**
    * Request battery level from device
-   * Device responds with "DEV <0-100>" line
+   * Device responds with "BATT <millivolts>" line
    */
   const requestBattery = useCallback(async () => {
     const ok = await ble.sendCommand('GET BATT\r\n');

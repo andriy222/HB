@@ -105,14 +105,21 @@ export function useBLEConnection(
     return { index, ml, timestamp, timestampDate, raw: line };
   }, [parseCoasterTimestamp]);
 
-  const parseDEVLine = useCallback((line: string): number | null => {
-    if (!line.startsWith(PROTOCOL_COMMANDS.DEV)) {return null;}
-    const match = REGEX_PATTERNS.DEV_BATTERY.exec(line);
+  /**
+   * Parse BATT line: "BATT <millivolts>"
+   * Firmware responds to GET BATT with battery voltage in mV.
+   * Convert mV to percentage (3000mV=0%, 4200mV=100%).
+   */
+  const parseBATTLine = useCallback((line: string): number | null => {
+    if (!line.startsWith(PROTOCOL_COMMANDS.BATT)) {return null;}
+    const match = REGEX_PATTERNS.BATT_LEVEL.exec(line);
     if (!match) {return null;}
-    const level = parseInt(match[1], 10);
-    return Number.isFinite(level)
-      ? Math.max(VALIDATION.BATTERY_MIN, Math.min(VALIDATION.BATTERY_MAX, level))
-      : null;
+    const mV = parseInt(match[1], 10);
+    if (!Number.isFinite(mV)) {return null;}
+
+    // Convert mV to percentage (lithium battery: 3000mV=0%, 4200mV=100%)
+    const pct = Math.round(((mV - 3000) / (4200 - 3000)) * 100);
+    return Math.max(VALIDATION.BATTERY_MIN, Math.min(VALIDATION.BATTERY_MAX, pct));
   }, []);
 
   const handleLine = useCallback((line: string) => {
@@ -132,12 +139,12 @@ export function useBLEConnection(
       return;
     }
 
-    const battery = parseDEVLine(trimmed);
+    const battery = parseBATTLine(trimmed);
     if (battery !== null) {
       setBatteryLevel(battery);
       return;
     }
-  }, [parseDLLine, parseDEVLine, onDataReceived, onLineReceived]);
+  }, [parseDLLine, parseBATTLine, onDataReceived, onLineReceived]);
 
   const subscribe = useCallback(async () => {
     if (!device || !isConnected) {return;}

@@ -18,8 +18,8 @@ export const REGEX_PATTERNS = {
   /** Timestamp pattern: YYMMDDhhmmss (12 digits) */
   DL_TIMESTAMP: /(\d{12})\s*$/,
 
-  /** DEV line pattern: "DEV <battery_percentage>" */
-  DEV_BATTERY: /^DEV\s+(\d{1,3})/,
+  /** BATT line pattern: "BATT <battery_level_mV>" (firmware protocol) */
+  BATT_LEVEL: /^BATT\s+(\d+)/,
 } as const;
 
 /**
@@ -59,8 +59,8 @@ export const PROTOCOL_COMMANDS = {
   /** Data log entry */
   DL: 'DL',
 
-  /** Device status (battery) */
-  DEV: 'DEV',
+  /** Battery response from device */
+  BATT: 'BATT',
 
   /** Start data transfer */
   SDT: 'SDT',

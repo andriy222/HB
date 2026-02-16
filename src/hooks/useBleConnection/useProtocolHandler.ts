@@ -1,10 +1,10 @@
-import { useState, useRef, useCallback } from "react";
-import { BLE_TIMEOUTS } from "../../constants/bleConstants";
-import { logger } from "../../utils/logger";
+import { useState, useRef, useCallback } from 'react';
+import { BLE_TIMEOUTS } from '../../constants/bleConstants';
+import { logger } from '../../utils/logger';
 
 /**
  * Protocol Response Handler
- * 
+ *
  * Handles coaster responses:
  * - ACK: command acknowledged
  * - END: data transfer complete
@@ -12,16 +12,16 @@ import { logger } from "../../utils/logger";
  * - SDT: start data transfer
  */
 
-export type ProtocolState = 
-  | "idle"          
-  | "requesting"     
-  | "receiving"      
-  | "syncing"        
-  | "complete"     
-  | "error";     
+export type ProtocolState =
+  | 'idle'
+  | 'requesting'
+  | 'receiving'
+  | 'syncing'
+  | 'complete'
+  | 'error';
 
 interface ProtocolHandlerCallbacks {
-  onDataStart?: () => void;   
+  onDataStart?: () => void;
   onDataComplete?: (count: number) => void;
   onSyncAck?: () => void;
   onGoalAck?: () => void;
@@ -29,115 +29,129 @@ interface ProtocolHandlerCallbacks {
 }
 
 export function useProtocolHandler(callbacks?: ProtocolHandlerCallbacks) {
-  const [state, setState] = useState<ProtocolState>("idle");
+  const [state, setState] = useState<ProtocolState>('idle');
   const [dlCount, setDlCount] = useState(0);
   const [lastError, setLastError] = useState<string | null>(null);
-  
+
   const awaitingGoalAckRef = useRef(false);
   const awaitingSyncAckRef = useRef(false);
   const dlCountRef = useRef(0);
   const idleTimerRef = useRef<any>(null);
+  const stateRef = useRef<ProtocolState>('idle');
+  const callbacksRef = useRef(callbacks);
+  callbacksRef.current = callbacks;
 
   const handleProtocolLine = useCallback((line: string) => {
     const trimmed = line.trim().toUpperCase();
 
-    if (trimmed.startsWith("SDT")) {
-      logger.debug("📊 SDT: Data transfer starting");
-      setState("receiving");
-      callbacks?.onDataStart?.();
+    if (trimmed.startsWith('SDT')) {
+      logger.debug('📊 SDT: Data transfer starting');
+      setState('receiving');
+      stateRef.current = 'receiving';
+      callbacksRef.current?.onDataStart?.();
       return true;
     }
 
-    if (trimmed.startsWith("DL")) {
+    if (trimmed.startsWith('DL')) {
       dlCountRef.current += 1;
       setDlCount(dlCountRef.current);
-      
+
       if (idleTimerRef.current) {
         clearTimeout(idleTimerRef.current);
       }
       idleTimerRef.current = setTimeout(() => {
-        if (state === "receiving") {
-          logger.debug("⏱️ DL stream idle → auto-completing");
-          handleProtocolLine("END");
+        // Use ref to avoid stale closure
+        if (stateRef.current === 'receiving') {
+          logger.debug('⏱️ DL stream idle → auto-completing');
+          handleProtocolLine('END');
         }
       }, BLE_TIMEOUTS.PROTOCOL_IDLE_TIMEOUT);
-      
+
       return true;
     }
 
-    if (trimmed.startsWith("END")) {
-      logger.info(`📊 END: ${dlCountRef.current} logs received`);
-      setState("idle");
-      
+    if (trimmed.startsWith('END')) {
+      logger.info(`📊 END received: ${dlCountRef.current} logs`);
+      setState('idle');
+      stateRef.current = 'idle';
+
       if (idleTimerRef.current) {
         clearTimeout(idleTimerRef.current);
         idleTimerRef.current = null;
       }
-      
-      callbacks?.onDataComplete?.(dlCountRef.current);
+
+      callbacksRef.current?.onDataComplete?.(dlCountRef.current);
       return true;
     }
-    if (trimmed === "ACK") {
+
+    if (trimmed === 'ACK') {
       if (awaitingGoalAckRef.current) {
-        logger.info("✅ ACK: GOAL confirmed");
+        logger.info('✅ ACK: GOAL confirmed');
         awaitingGoalAckRef.current = false;
-        callbacks?.onGoalAck?.();
+        callbacksRef.current?.onGoalAck?.();
         return true;
       }
 
       if (awaitingSyncAckRef.current) {
-        logger.info("✅ ACK: SYNC confirmed");
+        logger.info('✅ ACK: SYNC confirmed');
         awaitingSyncAckRef.current = false;
-        setState("complete");
-        callbacks?.onSyncAck?.();
+        setState('complete');
+        stateRef.current = 'complete';
+        callbacksRef.current?.onSyncAck?.();
         return true;
       }
 
-      logger.info("ℹ️ ACK: (no pending command)");
+      logger.info('ℹ️ ACK: (no pending command)');
       return true;
     }
 
-    if (trimmed.startsWith("ERR")) {
-      const message = line.substring(3).trim() || "Unknown error";
+    if (trimmed.startsWith('ERR')) {
+      const message = line.substring(3).trim() || 'Unknown error';
       logger.error(`❌ ERR: ${message}`);
-      setState("error");
+      setState('error');
+      stateRef.current = 'error';
       setLastError(message);
-      callbacks?.onError?.(message);
+      callbacksRef.current?.onError?.(message);
+      return true;
+    }
+
+    // Recognized but no-op: BATT responses handled by useBleConnection
+    if (trimmed.startsWith('BATT')) {
       return true;
     }
 
     return false;
-  }, [state, callbacks]);
+  }, []);
 
   const expectGoalAck = useCallback(() => {
     awaitingGoalAckRef.current = true;
-    logger.debug("⏳ Waiting for GOAL ACK...");
+    logger.debug('⏳ Waiting for GOAL ACK...');
   }, []);
 
   const expectSyncAck = useCallback(() => {
     awaitingSyncAckRef.current = true;
-    setState("syncing");
-    logger.debug("⏳ Waiting for SYNC ACK...");
+    setState('syncing');
+    logger.debug('⏳ Waiting for SYNC ACK...');
   }, []);
 
 
 
   const startDataTransfer = useCallback(() => {
-    setState("requesting");
+    setState('requesting');
     dlCountRef.current = 0;
     setDlCount(0);
-    logger.debug("📥 Starting data transfer...");
+    logger.debug('📥 Starting data transfer...');
   }, []);
 
 
   const reset = useCallback(() => {
-    setState("idle");
+    setState('idle');
     setDlCount(0);
     setLastError(null);
     dlCountRef.current = 0;
     awaitingGoalAckRef.current = false;
     awaitingSyncAckRef.current = false;
-    
+
     if (idleTimerRef.current) {
       clearTimeout(idleTimerRef.current);
       idleTimerRef.current = null;
@@ -151,7 +165,7 @@ export function useProtocolHandler(callbacks?: ProtocolHandlerCallbacks) {
     dlCount,
     lastError,
     isWaitingForAck: awaitingGoalAckRef.current || awaitingSyncAckRef.current,
-    
+
     handleProtocolLine,
     expectGoalAck,
     expectSyncAck,
