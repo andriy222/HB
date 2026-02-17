@@ -2,7 +2,6 @@ import { useEffect, useRef, useCallback } from 'react';
 import { Device } from 'react-native-ble-plx';
 import { useSession } from './useSession';
 import { useProtocolHandler } from './useProtocolHandler';
-import { useReconnectHandler } from './useRecconectHandler';
 import { useBLEWrapper } from '../MockBleProvider/useBleWrapper';
 import { getSelectedGender } from '../../utils/storage';
 import { BLE_DEVICE, BLE_PROTOCOL, BLE_TIMEOUTS } from '../../constants/bleConstants';
@@ -10,6 +9,9 @@ import { logger } from '../../utils/logger';
 
 /**
  * Coordinator: BLE + Session Logic + Protocol
+ *
+ * Single source of truth for all BLE commands.
+ * All command triggers go through this hook.
  */
 
 interface CoasterSessionConfig {
@@ -22,13 +24,19 @@ export function useCoasterSession(config: CoasterSessionConfig) {
   const { device, isConnected, dlPerInterval = BLE_PROTOCOL.LOGS_PER_INTERVAL } = config;
 
   const session = useSession();
-  const sessionStartedRef = useRef(false);
-  const autoSyncRef = useRef(false);
-  const lastDLTimestampRef = useRef<number | null>(null);
-  const lastGetAllTimeRef = useRef<number>(0);
 
-  /** Minimum interval between GET ALL commands (5 seconds) */
-  const GET_ALL_COOLDOWN = 5000;
+  // Guards to prevent duplicate commands
+  const sessionStartedRef = useRef(false);
+  const goalSyncInProgressRef = useRef(false);
+  const getAllInProgressRef = useRef(false);
+
+  // Track disconnect for reconnect detection
+  const wasConnectedRef = useRef(false);
+  const disconnectTimeRef = useRef<number | null>(null);
+  const reconnectCountRef = useRef(0);
+
+  // Data tracking
+  const lastDLTimestampRef = useRef<number | null>(null);
 
   // Store session in ref to avoid recreating callbacks
   const sessionRef = useRef(session);
@@ -43,72 +51,52 @@ export function useCoasterSession(config: CoasterSessionConfig) {
 
   /**
    * Handle BLE data - using ref to avoid dependency changes
-   * Now uses coaster timestamp for accurate interval calculation
    */
   const handleBLEData = useCallback((data: { index: number; ml: number; timestampDate?: Date }) => {
     const currentSession = sessionRef.current;
     if (!currentSession.isActive) {return;}
 
-    // Use coaster timestamp if available, otherwise fall back to Date.now()
     const eventTime = data.timestampDate?.getTime() ?? Date.now();
-
-    // Update last DL timestamp for reconnect detection
     lastDLTimestampRef.current = eventTime;
 
-    // Record hydration with coaster timestamp for accurate interval calculation
     currentSession.recordDrink(data.ml, data.timestampDate);
 
     const intervalIndex = mapDLToInterval(data.index);
-    console.log(
+    logger.debug(
       `💧 DL ${data.index} → Interval ${intervalIndex}: +${data.ml.toFixed(1)}ml` +
-      (data.timestampDate ? ` @ ${data.timestampDate.toLocaleTimeString()}` : ' (no timestamp)'),
+      (data.timestampDate ? ` @ ${data.timestampDate.toLocaleTimeString()}` : ''),
     );
   }, [mapDLToInterval]);
 
-  // Reconnect handler
-  const reconnect = useReconnectHandler(isConnected, {
-    onReconnect: () => {
-      logger.debug('🔄 Backfill: requesting all logs');
-      requestLogs();
-    },
-    onBackfillComplete: () => {
-      logger.debug('🔄 Backfill complete');
-    },
-    sessionStartTime: session.session?.startTime ?? null,
-    lastDLTimestamp: lastDLTimestampRef.current,
+  /**
+   * Protocol handler with stable callbacks via refs
+   */
+  const protocolCallbacksRef = useRef({
+    onDataComplete: (_count: number) => {},
+    onGoalAck: () => {},
+    onSyncAck: () => {},
+    onError: (_msg: string) => {},
   });
 
-  // Protocol handler
   const protocol = useProtocolHandler({
     onDataStart: () => {
       logger.debug('📊 Data transfer started');
     },
     onDataComplete: (count) => {
-      logger.info(`📊 Data complete: ${count} logs`);
-
-      // Auto-sync if we got 0 logs or >= max expected logs
-      if ((count === 0 || count >= BLE_PROTOCOL.MAX_EXPECTED_LOGS) && !autoSyncRef.current) {
-        autoSyncRef.current = true;
-        logger.info(`📊 Auto-sync triggered (count=${count}), sending GOAL+SYNC...`);
-        setTimeout(() => {
-          sendGoalAndSync();
-        }, BLE_TIMEOUTS.AUTO_SYNC_DELAY);
-      }
+      protocolCallbacksRef.current.onDataComplete(count);
     },
     onGoalAck: () => {
-      logger.info('✅ GOAL confirmed, sending SYNC...');
-      sendTimeSync();
+      protocolCallbacksRef.current.onGoalAck();
     },
     onSyncAck: () => {
-      logger.info('✅ SYNC complete, session ready');
-      autoSyncRef.current = false;
+      protocolCallbacksRef.current.onSyncAck();
     },
     onError: (msg) => {
-      logger.error(`❌ Coaster error: ${msg}`);
+      protocolCallbacksRef.current.onError(msg);
     },
   });
 
-  // Store protocol in ref to avoid recreating callbacks
+  // Store protocol in ref
   const protocolRef = useRef(protocol);
   protocolRef.current = protocol;
 
@@ -132,63 +120,26 @@ export function useCoasterSession(config: CoasterSessionConfig) {
     handleProtocolLine,
   );
 
-  /**
-   * Auto-start or restore session on BLE connect
-   *
-   * PRD: "Backgrounding/quit: coaster keeps logging; on reconnect,
-   * the app re-syncs time and backfills before applying penalties"
-   */
-  useEffect(() => {
-    if (!isConnected || !device || !ble.isReady) {return;}
-
-    // Check if we have an active restored session
-    if (session.session?.isActive && session.session?.startTime) {
-      // Session was restored from storage - request backfill
-      if (!sessionStartedRef.current) {
-        sessionStartedRef.current = true;
-        ble.resetSeenIndices();
-        protocol.reset();
-        autoSyncRef.current = false;
-
-        logger.info('🔄 Session restored, requesting backfill...');
-
-        // Request all logs from coaster to catch up on missed data
-        setTimeout(() => {
-          requestLogs();
-        }, BLE_TIMEOUTS.BACKFILL_STABILIZATION_DELAY);
-      }
-    } else if (!sessionStartedRef.current) {
-      // No active session - start a new one
-      const gender = getSelectedGender();
-      session.start(gender);
-      sessionStartedRef.current = true;
-      ble.resetSeenIndices();
-      protocol.reset();
-      autoSyncRef.current = false;
-
-      logger.info(`🏁 New session started (${gender})`);
-
-      // Firmware requires: GET ALL → GOAL → SYNC sequence
-      // Request logs first, then GOAL/SYNC will be sent after data complete
-      setTimeout(() => {
-        requestLogs();
-      }, BLE_TIMEOUTS.BACKFILL_STABILIZATION_DELAY);
-    }
-  }, [isConnected, device, ble.isReady]);
+  // Store ble in ref for use in callbacks
+  const bleRef = useRef(ble);
+  bleRef.current = ble;
 
   /**
-   * Commands
+   * Send GOAL command
    */
   const sendGoal = useCallback(async (ml: number, min: number) => {
     const cmd = `GOAL ${ml} ${min}\r\n`;
-    const ok = await ble.sendCommand(cmd);
+    const ok = await bleRef.current.sendCommand(cmd);
     if (ok) {
-      protocol.expectGoalAck();
+      protocolRef.current.expectGoalAck();
       logger.info(`🎯 GOAL: ${ml}ml / ${min}min`);
     }
     return ok;
-  }, [ble, protocol]);
+  }, []);
 
+  /**
+   * Send SYNC command
+   */
   const sendTimeSync = useCallback(async () => {
     const now = new Date();
     const YY = String(now.getFullYear() % 100).padStart(2, '0');
@@ -201,81 +152,214 @@ export function useCoasterSession(config: CoasterSessionConfig) {
     const ts = `${YY}${MM}${DD}${hh}${mm}${ss}`;
     const cmd = `SYNC ${ts}\r\n`;
 
-    const ok = await ble.sendCommand(cmd);
+    const ok = await bleRef.current.sendCommand(cmd);
     if (ok) {
-      protocol.expectSyncAck();
+      protocolRef.current.expectSyncAck();
       logger.info(`⏰ SYNC: ${ts}`);
     }
     return ok;
-  }, [ble, protocol]);
-
-  const requestLogs = useCallback(async () => {
-    // Rate limit: prevent repeated GET ALL within cooldown period
-    const now = Date.now();
-    if (now - lastGetAllTimeRef.current < GET_ALL_COOLDOWN) {
-      logger.warn(`⏳ GET ALL throttled (cooldown ${GET_ALL_COOLDOWN}ms)`);
-      return false;
-    }
-    lastGetAllTimeRef.current = now;
-
-    protocol.startDataTransfer();
-    const ok = await ble.sendCommand('GET ALL\r\n');
-    if (ok) {
-      logger.info('📥 GET ALL sent');
-      ble.resetSeenIndices();
-    }
-    return ok;
-  }, [ble, protocol]);
+  }, []);
 
   /**
-   * Request battery level from device
-   * Device responds with "BATT <millivolts>" line
+   * Request all logs from device
    */
-  const requestBattery = useCallback(async () => {
-    const ok = await ble.sendCommand('GET BATT\r\n');
+  const requestLogs = useCallback(async () => {
+    // Guard: prevent multiple GET ALL in progress
+    if (getAllInProgressRef.current) {
+      logger.warn('⏳ GET ALL already in progress');
+      return false;
+    }
+    getAllInProgressRef.current = true;
+
+    protocolRef.current.startDataTransfer();
+    const ok = await bleRef.current.sendCommand('GET ALL\r\n');
     if (ok) {
-      logger.debug('🔋 GET BATT (keep-alive)');
+      logger.info('📥 GET ALL sent');
+      bleRef.current.resetSeenIndices();
+    } else {
+      getAllInProgressRef.current = false;
     }
     return ok;
-  }, [ble]);
+  }, []);
+
+  /**
+   * Send GOAL then SYNC
+   */
+  const sendGoalAndSync = useCallback(async () => {
+    // Guard: prevent multiple GOAL/SYNC in progress
+    if (goalSyncInProgressRef.current) {
+      logger.warn('⏳ GOAL/SYNC already in progress');
+      return;
+    }
+    goalSyncInProgressRef.current = true;
+
+    await sendGoal(BLE_PROTOCOL.COASTER_GOAL_ML, BLE_PROTOCOL.COASTER_GOAL_INTERVAL_MIN);
+    // SYNC will be sent after GOAL ACK
+  }, [sendGoal]);
+
+  /**
+   * Update protocol callbacks (using refs to avoid dependency issues)
+   */
+  protocolCallbacksRef.current = {
+    onDataComplete: (count: number) => {
+      logger.info(`📊 Data complete: ${count} logs`);
+      getAllInProgressRef.current = false;
+
+      // Auto-sync after data complete
+      if (count === 0 || count >= BLE_PROTOCOL.MAX_EXPECTED_LOGS) {
+        logger.info(`📊 Triggering GOAL+SYNC (count=${count})`);
+        setTimeout(() => {
+          sendGoalAndSync();
+        }, BLE_TIMEOUTS.AUTO_SYNC_DELAY);
+      }
+    },
+    onGoalAck: () => {
+      logger.info('✅ GOAL confirmed, sending SYNC...');
+      sendTimeSync();
+    },
+    onSyncAck: () => {
+      logger.info('✅ SYNC complete');
+      goalSyncInProgressRef.current = false;
+    },
+    onError: (msg: string) => {
+      logger.error(`❌ Coaster error: ${msg}`);
+      // Reset guards on error
+      getAllInProgressRef.current = false;
+      goalSyncInProgressRef.current = false;
+    },
+  };
+
+  /**
+   * Track connection state changes
+   */
+  useEffect(() => {
+    if (!isConnected && wasConnectedRef.current) {
+      // Disconnected
+      disconnectTimeRef.current = Date.now();
+      logger.info('🔌 Connection lost');
+    }
+    wasConnectedRef.current = isConnected;
+  }, [isConnected]);
+
+  /**
+   * Main connection handler - SINGLE SOURCE for all initial commands
+   */
+  useEffect(() => {
+    if (!isConnected || !device || !ble.isReady) {
+      return;
+    }
+
+    // Check if this is a reconnect
+    const isReconnect = disconnectTimeRef.current !== null;
+
+    if (isReconnect) {
+      // Calculate missed time
+      const missedMs = Date.now() - (disconnectTimeRef.current ?? Date.now());
+      const missedMinutes = missedMs / (60 * 1000);
+
+      reconnectCountRef.current += 1;
+      disconnectTimeRef.current = null; // Clear for next disconnect
+
+      logger.info(`🔌 Reconnected after ${missedMinutes.toFixed(1)}min (count: ${reconnectCountRef.current})`);
+
+      // Reset state for new data transfer
+      bleRef.current.resetSeenIndices();
+      protocolRef.current.reset();
+      getAllInProgressRef.current = false;
+      goalSyncInProgressRef.current = false;
+
+      // Request backfill
+      setTimeout(() => {
+        requestLogs();
+      }, BLE_TIMEOUTS.BACKFILL_STABILIZATION_DELAY);
+
+      return;
+    }
+
+    // Initial connection
+    if (sessionStartedRef.current) {
+      return; // Already initialized
+    }
+
+    // Check if we have a restored session
+    if (session.session?.isActive && session.session?.startTime) {
+      logger.info('🔄 Session restored, requesting backfill...');
+    } else {
+      // Start new session
+      const gender = getSelectedGender();
+      session.start(gender);
+      logger.info(`🏁 New session started (${gender})`);
+    }
+
+    sessionStartedRef.current = true;
+    bleRef.current.resetSeenIndices();
+    protocolRef.current.reset();
+    getAllInProgressRef.current = false;
+    goalSyncInProgressRef.current = false;
+
+    // Start protocol sequence: GET ALL → GOAL → SYNC
+    setTimeout(() => {
+      requestLogs();
+    }, BLE_TIMEOUTS.BACKFILL_STABILIZATION_DELAY);
+  }, [isConnected, device, ble.isReady, session, requestLogs]);
 
   /**
    * Keep-alive: Coaster disconnects after 25s without messages
-   * Send GET BATT every 20s to maintain connection
    */
   const keepAliveRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (isConnected && ble.isReady) {
-      // Start keep-alive interval
       keepAliveRef.current = setInterval(() => {
-        ble.sendCommand('GET BATT\r\n').then((ok) => {
+        bleRef.current.sendCommand('GET BATT\r\n').then((ok) => {
           if (ok) {
             logger.debug('💓 Keep-alive ping');
           }
         });
       }, BLE_TIMEOUTS.KEEP_ALIVE_INTERVAL);
 
-      logger.info('💓 Keep-alive started (20s interval)');
+      logger.info('💓 Keep-alive started');
     }
 
     return () => {
       if (keepAliveRef.current) {
         clearInterval(keepAliveRef.current);
         keepAliveRef.current = null;
-        logger.debug('💓 Keep-alive stopped');
       }
     };
   }, [isConnected, ble.isReady]);
 
   /**
-   * Send GOAL then SYNC (auto flow)
+   * Request battery level
    */
-  const sendGoalAndSync = useCallback(async () => {
-    // Send goal (default values from BLE protocol)
-    await sendGoal(BLE_PROTOCOL.COASTER_GOAL_ML, BLE_PROTOCOL.COASTER_GOAL_INTERVAL_MIN);
-    // SYNC will be sent after GOAL ACK (handled in protocol callbacks)
-  }, [sendGoal]);
+  const requestBattery = useCallback(async () => {
+    const ok = await bleRef.current.sendCommand('GET BATT\r\n');
+    if (ok) {
+      logger.debug('🔋 GET BATT');
+    }
+    return ok;
+  }, []);
+
+  /**
+   * Calculate missed intervals (for UI display)
+   */
+  const getMissedIntervals = useCallback((): number[] => {
+    const startTime = session.session?.startTime;
+    const lastDL = lastDLTimestampRef.current;
+    if (!startTime || !lastDL) {return [];}
+
+    const now = Date.now();
+    const currentInterval = Math.floor((now - startTime) / (10 * 60 * 1000));
+    const lastDLInterval = Math.floor((lastDL - startTime) / (10 * 60 * 1000));
+
+    const missed: number[] = [];
+    for (let i = lastDLInterval + 1; i <= currentInterval; i++) {
+      if (i >= 0 && i < 42) {
+        missed.push(i);
+      }
+    }
+    return missed;
+  }, [session.session?.startTime]);
 
   return {
     // Session
@@ -291,9 +375,9 @@ export function useCoasterSession(config: CoasterSessionConfig) {
     dlCount: protocol.dlCount,
     lastError: protocol.lastError,
 
-    // Reconnect
-    reconnectCount: reconnect.reconnectCount,
-    missedIntervals: reconnect.getMissedIntervals(),
+    // Reconnect stats
+    reconnectCount: reconnectCountRef.current,
+    missedIntervals: getMissedIntervals(),
 
     // Commands
     sendGoal,
@@ -306,7 +390,9 @@ export function useCoasterSession(config: CoasterSessionConfig) {
     completeSession: () => {
       session.end();
       sessionStartedRef.current = false;
-      protocol.reset();
+      protocolRef.current.reset();
+      getAllInProgressRef.current = false;
+      goalSyncInProgressRef.current = false;
     },
   };
 }
