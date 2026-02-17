@@ -4,6 +4,9 @@ import { base64Decode, base64Encode } from '../../utils/base64';
 import { logger } from '../../utils/logger';
 import { REGEX_PATTERNS, VALIDATION, PROTOCOL_COMMANDS } from '../../constants/appConstants';
 
+/** Minimum interval between identical commands (ms) to prevent duplicates */
+const COMMAND_DEDUP_WINDOW = 500;
+
 interface BLEConfig {
   targetService: string;
   rxCharacteristic: string;
@@ -33,6 +36,9 @@ export function useBLEConnection(
   const lineBufferRef = useRef<string>('');
   const subscriptionRef = useRef<any>(null);
   const seenIndicesRef = useRef<Set<number>>(new Set());
+
+  // Command deduplication: track last command and timestamp
+  const lastCommandRef = useRef<{ cmd: string; time: number } | null>(null);
 
   const { targetService, rxCharacteristic, txCharacteristic } = config;
 
@@ -200,6 +206,18 @@ export function useBLEConnection(
       logger.warn('Cannot send: not connected');
       return false;
     }
+
+    // Command deduplication: skip if same command sent within window
+    const now = Date.now();
+    const cmdKey = command.trim();
+    if (lastCommandRef.current) {
+      const elapsed = now - lastCommandRef.current.time;
+      if (lastCommandRef.current.cmd === cmdKey && elapsed < COMMAND_DEDUP_WINDOW) {
+        logger.warn(`⏭️ Duplicate command blocked: "${cmdKey}" (${elapsed}ms ago)`);
+        return true; // Return true to avoid triggering error handlers
+      }
+    }
+    lastCommandRef.current = { cmd: cmdKey, time: now };
 
     try {
       const base64 = base64Encode(command);

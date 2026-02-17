@@ -41,6 +41,9 @@ export function useProtocolHandler(callbacks?: ProtocolHandlerCallbacks) {
   const callbacksRef = useRef(callbacks);
   callbacksRef.current = callbacks;
 
+  // Guard against multiple END processing
+  const dataCompleteCalledRef = useRef(false);
+
   const handleProtocolLine = useCallback((line: string) => {
     const trimmed = line.trim().toUpperCase();
 
@@ -71,6 +74,13 @@ export function useProtocolHandler(callbacks?: ProtocolHandlerCallbacks) {
     }
 
     if (trimmed.startsWith('END')) {
+      // Guard against multiple END processing (race between real END and idle timeout)
+      if (dataCompleteCalledRef.current) {
+        logger.debug('📊 END ignored (already processed)');
+        return true;
+      }
+      dataCompleteCalledRef.current = true;
+
       logger.info(`📊 END received: ${dlCountRef.current} logs`);
       setState('idle');
       stateRef.current = 'idle';
@@ -138,19 +148,23 @@ export function useProtocolHandler(callbacks?: ProtocolHandlerCallbacks) {
 
   const startDataTransfer = useCallback(() => {
     setState('requesting');
+    stateRef.current = 'requesting';
     dlCountRef.current = 0;
     setDlCount(0);
+    dataCompleteCalledRef.current = false; // Reset guard for new transfer
     logger.debug('📥 Starting data transfer...');
   }, []);
 
 
   const reset = useCallback(() => {
     setState('idle');
+    stateRef.current = 'idle';
     setDlCount(0);
     setLastError(null);
     dlCountRef.current = 0;
     awaitingGoalAckRef.current = false;
     awaitingSyncAckRef.current = false;
+    dataCompleteCalledRef.current = false;
 
     if (idleTimerRef.current) {
       clearTimeout(idleTimerRef.current);
