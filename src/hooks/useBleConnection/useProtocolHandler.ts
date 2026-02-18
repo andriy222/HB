@@ -21,6 +21,7 @@ export type ProtocolState =
   | 'error';
 
 interface ProtocolHandlerCallbacks {
+  onDeviceReady?: () => void;
   onDataStart?: () => void;
   onDataComplete?: (count: number) => void;
   onSyncAck?: () => void;
@@ -127,6 +128,13 @@ export function useProtocolHandler(callbacks?: ProtocolHandlerCallbacks) {
 
     // Recognized but no-op: BATT responses handled by useBleConnection
     if (trimmed.startsWith('BATT')) {
+      return true;
+    }
+
+    // READY signal from device - device is ready to receive commands
+    if (trimmed === 'READY') {
+      logger.info('✅ READY: Device ready to receive commands');
+      callbacksRef.current?.onDeviceReady?.();
       return true;
     }
 

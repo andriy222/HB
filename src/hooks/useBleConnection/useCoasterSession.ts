@@ -30,6 +30,10 @@ export function useCoasterSession(config: CoasterSessionConfig) {
   const goalSyncInProgressRef = useRef(false);
   const getAllInProgressRef = useRef(false);
 
+  // Track device READY state - don't send commands until device signals READY
+  const deviceReadyRef = useRef(false);
+  const waitingForReadyRef = useRef(false);
+
   // Track disconnect for reconnect detection
   const wasConnectedRef = useRef(false);
   const disconnectTimeRef = useRef<number | null>(null);
@@ -72,6 +76,7 @@ export function useCoasterSession(config: CoasterSessionConfig) {
    * Protocol handler with stable callbacks via refs
    */
   const protocolCallbacksRef = useRef({
+    onDeviceReady: () => {},
     onDataComplete: (_count: number) => {},
     onGoalAck: () => {},
     onSyncAck: () => {},
@@ -79,6 +84,9 @@ export function useCoasterSession(config: CoasterSessionConfig) {
   });
 
   const protocol = useProtocolHandler({
+    onDeviceReady: () => {
+      protocolCallbacksRef.current.onDeviceReady();
+    },
     onDataStart: () => {
       logger.debug('📊 Data transfer started');
     },
@@ -201,6 +209,16 @@ export function useCoasterSession(config: CoasterSessionConfig) {
    * Update protocol callbacks (using refs to avoid dependency issues)
    */
   protocolCallbacksRef.current = {
+    onDeviceReady: () => {
+      logger.info('✅ Device READY - starting protocol sequence');
+      deviceReadyRef.current = true;
+
+      // If we were waiting for READY, now send GET ALL
+      if (waitingForReadyRef.current) {
+        waitingForReadyRef.current = false;
+        requestLogs();
+      }
+    },
     onDataComplete: (count: number) => {
       logger.info(`📊 Data complete: ${count} logs`);
       getAllInProgressRef.current = false;
@@ -234,15 +252,20 @@ export function useCoasterSession(config: CoasterSessionConfig) {
    */
   useEffect(() => {
     if (!isConnected && wasConnectedRef.current) {
-      // Disconnected
+      // Disconnected - reset device ready state
       disconnectTimeRef.current = Date.now();
+      deviceReadyRef.current = false;
+      waitingForReadyRef.current = false;
       logger.info('🔌 Connection lost');
     }
     wasConnectedRef.current = isConnected;
   }, [isConnected]);
 
   /**
-   * Main connection handler - SINGLE SOURCE for all initial commands
+   * Main connection handler - waits for READY before sending commands
+   *
+   * Flow: BLE Connect → Wait for READY → GET ALL → GOAL → SYNC
+   * Firmware sends "READY\r\n" when it's ready to receive commands
    */
   useEffect(() => {
     if (!isConnected || !device || !ble.isReady) {
@@ -267,11 +290,11 @@ export function useCoasterSession(config: CoasterSessionConfig) {
       protocolRef.current.reset();
       getAllInProgressRef.current = false;
       goalSyncInProgressRef.current = false;
+      deviceReadyRef.current = false;
 
-      // Request backfill
-      setTimeout(() => {
-        requestLogs();
-      }, BLE_TIMEOUTS.BACKFILL_STABILIZATION_DELAY);
+      // Wait for READY signal before sending commands
+      waitingForReadyRef.current = true;
+      logger.info('⏳ Waiting for device READY signal...');
 
       return;
     }
@@ -283,7 +306,7 @@ export function useCoasterSession(config: CoasterSessionConfig) {
 
     // Check if we have a restored session
     if (session.session?.isActive && session.session?.startTime) {
-      logger.info('🔄 Session restored, requesting backfill...');
+      logger.info('🔄 Session restored, waiting for device READY...');
     } else {
       // Start new session
       const gender = getSelectedGender();
@@ -296,12 +319,13 @@ export function useCoasterSession(config: CoasterSessionConfig) {
     protocolRef.current.reset();
     getAllInProgressRef.current = false;
     goalSyncInProgressRef.current = false;
+    deviceReadyRef.current = false;
 
-    // Start protocol sequence: GET ALL → GOAL → SYNC
-    setTimeout(() => {
-      requestLogs();
-    }, BLE_TIMEOUTS.BACKFILL_STABILIZATION_DELAY);
-  }, [isConnected, device, ble.isReady, session, requestLogs]);
+    // Wait for READY signal before sending GET ALL
+    // Device will send "READY\r\n" when it's ready to receive commands
+    waitingForReadyRef.current = true;
+    logger.info('⏳ Waiting for device READY signal...');
+  }, [isConnected, device, ble.isReady, session]);
 
   /**
    * Keep-alive: Coaster disconnects after 25s without messages
@@ -370,6 +394,10 @@ export function useCoasterSession(config: CoasterSessionConfig) {
     isBLEReady: ble.isReady,
     batteryLevel: ble.batteryLevel,
 
+    // Device ready state
+    isDeviceReady: deviceReadyRef.current,
+    isWaitingForReady: waitingForReadyRef.current,
+
     // Protocol
     protocolState: protocol.state,
     dlCount: protocol.dlCount,
@@ -393,6 +421,8 @@ export function useCoasterSession(config: CoasterSessionConfig) {
       protocolRef.current.reset();
       getAllInProgressRef.current = false;
       goalSyncInProgressRef.current = false;
+      deviceReadyRef.current = false;
+      waitingForReadyRef.current = false;
     },
   };
 }
