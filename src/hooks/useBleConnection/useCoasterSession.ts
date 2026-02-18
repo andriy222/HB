@@ -325,7 +325,10 @@ export function useCoasterSession(config: CoasterSessionConfig) {
     // Device will send "READY\r\n" when it's ready to receive commands
     waitingForReadyRef.current = true;
     logger.info('⏳ Waiting for device READY signal...');
-  }, [isConnected, device, ble.isReady, session]);
+  // Note: Using session.isActive instead of session object to prevent re-runs
+  // when session state updates (which creates a new object every render)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isConnected, device, ble.isReady, session.isActive]);
 
   /**
    * Keep-alive: Coaster disconnects after 25s without messages

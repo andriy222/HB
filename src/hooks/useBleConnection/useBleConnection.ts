@@ -7,6 +7,12 @@ import { REGEX_PATTERNS, VALIDATION, PROTOCOL_COMMANDS } from '../../constants/a
 /** Minimum interval between identical commands (ms) to prevent duplicates */
 const COMMAND_DEDUP_WINDOW = 500;
 
+/**
+ * Global command tracking for deduplication across all hook instances.
+ * This prevents multiple components/hooks from sending the same command.
+ */
+const globalLastCommand: { cmd: string; time: number } | null = { cmd: '', time: 0 };
+
 interface BLEConfig {
   targetService: string;
   rxCharacteristic: string;
@@ -208,14 +214,32 @@ export function useBLEConnection(
     }
 
     // Command deduplication: skip if same command sent within window
+    // Uses BOTH global and per-instance tracking to catch duplicates from multiple sources
     const now = Date.now();
     const cmdKey = command.trim();
+
+    // Global deduplication (catches multiple hook instances sending same command)
+    if (globalLastCommand) {
+      const elapsed = now - globalLastCommand.time;
+      if (globalLastCommand.cmd === cmdKey && elapsed < COMMAND_DEDUP_WINDOW) {
+        logger.warn(`⏭️ Duplicate command blocked (global): "${cmdKey}" (${elapsed}ms ago)`);
+        return true;
+      }
+    }
+
+    // Per-instance deduplication (catches same hook instance sending rapidly)
     if (lastCommandRef.current) {
       const elapsed = now - lastCommandRef.current.time;
       if (lastCommandRef.current.cmd === cmdKey && elapsed < COMMAND_DEDUP_WINDOW) {
-        logger.warn(`⏭️ Duplicate command blocked: "${cmdKey}" (${elapsed}ms ago)`);
-        return true; // Return true to avoid triggering error handlers
+        logger.warn(`⏭️ Duplicate command blocked (instance): "${cmdKey}" (${elapsed}ms ago)`);
+        return true;
       }
+    }
+
+    // Update both tracking mechanisms
+    if (globalLastCommand) {
+      globalLastCommand.cmd = cmdKey;
+      globalLastCommand.time = now;
     }
     lastCommandRef.current = { cmd: cmdKey, time: now };
 
