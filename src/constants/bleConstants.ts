@@ -51,6 +51,9 @@ export const BLE_TIMEOUTS = {
 
   /** Keep-alive interval - coaster disconnects after 25s without messages */
   KEEP_ALIVE_INTERVAL: 20000, // 20 seconds (safety margin from 25s timeout)
+
+  /** Timeout waiting for device READY signal before falling back (milliseconds) */
+  READY_SIGNAL_TIMEOUT: 3000, // 3 seconds - proceed without READY if firmware doesn't support it yet
 } as const;
 
 /**

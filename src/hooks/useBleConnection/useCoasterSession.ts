@@ -33,6 +33,7 @@ export function useCoasterSession(config: CoasterSessionConfig) {
   // Track device READY state - don't send commands until device signals READY
   const deviceReadyRef = useRef(false);
   const waitingForReadyRef = useRef(false);
+  const readyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Track disconnect for reconnect detection
   const wasConnectedRef = useRef(false);
@@ -213,6 +214,12 @@ export function useCoasterSession(config: CoasterSessionConfig) {
       logger.info('✅ Device READY - starting protocol sequence');
       deviceReadyRef.current = true;
 
+      // Clear the fallback timeout since READY arrived
+      if (readyTimeoutRef.current) {
+        clearTimeout(readyTimeoutRef.current);
+        readyTimeoutRef.current = null;
+      }
+
       // If we were waiting for READY, now send GET ALL
       if (waitingForReadyRef.current) {
         waitingForReadyRef.current = false;
@@ -256,6 +263,10 @@ export function useCoasterSession(config: CoasterSessionConfig) {
       disconnectTimeRef.current = Date.now();
       deviceReadyRef.current = false;
       waitingForReadyRef.current = false;
+      if (readyTimeoutRef.current) {
+        clearTimeout(readyTimeoutRef.current);
+        readyTimeoutRef.current = null;
+      }
       logger.info('🔌 Connection lost');
     }
     wasConnectedRef.current = isConnected;
@@ -292,9 +303,19 @@ export function useCoasterSession(config: CoasterSessionConfig) {
       goalSyncInProgressRef.current = false;
       deviceReadyRef.current = false;
 
-      // Wait for READY signal before sending commands
+      // Wait for READY signal before sending commands (with fallback timeout)
       waitingForReadyRef.current = true;
       logger.info('⏳ Waiting for device READY signal...');
+
+      // Fallback: if READY doesn't arrive within timeout, proceed anyway
+      // (firmware may not support READY signal yet)
+      readyTimeoutRef.current = setTimeout(() => {
+        if (waitingForReadyRef.current && !deviceReadyRef.current) {
+          logger.warn('⏰ READY signal timeout - proceeding without READY');
+          waitingForReadyRef.current = false;
+          requestLogs();
+        }
+      }, BLE_TIMEOUTS.READY_SIGNAL_TIMEOUT);
 
       return;
     }
@@ -325,6 +346,16 @@ export function useCoasterSession(config: CoasterSessionConfig) {
     // Device will send "READY\r\n" when it's ready to receive commands
     waitingForReadyRef.current = true;
     logger.info('⏳ Waiting for device READY signal...');
+
+    // Fallback: if READY doesn't arrive within timeout, proceed anyway
+    // (firmware may not support READY signal yet)
+    readyTimeoutRef.current = setTimeout(() => {
+      if (waitingForReadyRef.current && !deviceReadyRef.current) {
+        logger.warn('⏰ READY signal timeout - proceeding without READY');
+        waitingForReadyRef.current = false;
+        requestLogs();
+      }
+    }, BLE_TIMEOUTS.READY_SIGNAL_TIMEOUT);
   // Note: Using session.isActive instead of session object to prevent re-runs
   // when session state updates (which creates a new object every render)
   // eslint-disable-next-line react-hooks/exhaustive-deps
