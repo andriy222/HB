@@ -273,10 +273,10 @@ export function useCoasterSession(config: CoasterSessionConfig) {
   }, [isConnected]);
 
   /**
-   * Main connection handler - waits for READY before sending commands
+   * Main connection handler
    *
-   * Flow: BLE Connect → Wait for READY → GET ALL → GOAL → SYNC
-   * Firmware sends "READY\r\n" when it's ready to receive commands
+   * Flow: BLE Connect → short stabilization delay → GET ALL → GOAL → SYNC
+   * If firmware sends "READY\r\n" before the delay, we start immediately.
    */
   useEffect(() => {
     if (!isConnected || !device || !ble.isReady) {
@@ -303,19 +303,15 @@ export function useCoasterSession(config: CoasterSessionConfig) {
       goalSyncInProgressRef.current = false;
       deviceReadyRef.current = false;
 
-      // Wait for READY signal before sending commands (with fallback timeout)
+      // Start commands after short stabilization delay
+      // If firmware sends READY before this, onDeviceReady will handle it
       waitingForReadyRef.current = true;
-      logger.info('⏳ Waiting for device READY signal...');
-
-      // Fallback: if READY doesn't arrive within timeout, proceed anyway
-      // (firmware may not support READY signal yet)
       readyTimeoutRef.current = setTimeout(() => {
-        if (waitingForReadyRef.current && !deviceReadyRef.current) {
-          logger.warn('⏰ READY signal timeout - proceeding without READY');
+        if (waitingForReadyRef.current) {
           waitingForReadyRef.current = false;
           requestLogs();
         }
-      }, BLE_TIMEOUTS.READY_SIGNAL_TIMEOUT);
+      }, BLE_TIMEOUTS.BACKFILL_STABILIZATION_DELAY);
 
       return;
     }
@@ -327,7 +323,7 @@ export function useCoasterSession(config: CoasterSessionConfig) {
 
     // Check if we have a restored session
     if (session.session?.isActive && session.session?.startTime) {
-      logger.info('🔄 Session restored, waiting for device READY...');
+      logger.info('🔄 Session restored');
     } else {
       // Start new session
       const gender = getSelectedGender();
@@ -342,20 +338,15 @@ export function useCoasterSession(config: CoasterSessionConfig) {
     goalSyncInProgressRef.current = false;
     deviceReadyRef.current = false;
 
-    // Wait for READY signal before sending GET ALL
-    // Device will send "READY\r\n" when it's ready to receive commands
+    // Start commands after short stabilization delay
+    // If firmware sends READY before this, onDeviceReady will handle it
     waitingForReadyRef.current = true;
-    logger.info('⏳ Waiting for device READY signal...');
-
-    // Fallback: if READY doesn't arrive within timeout, proceed anyway
-    // (firmware may not support READY signal yet)
     readyTimeoutRef.current = setTimeout(() => {
-      if (waitingForReadyRef.current && !deviceReadyRef.current) {
-        logger.warn('⏰ READY signal timeout - proceeding without READY');
+      if (waitingForReadyRef.current) {
         waitingForReadyRef.current = false;
         requestLogs();
       }
-    }, BLE_TIMEOUTS.READY_SIGNAL_TIMEOUT);
+    }, BLE_TIMEOUTS.BACKFILL_STABILIZATION_DELAY);
   // Note: Using session.isActive instead of session object to prevent re-runs
   // when session state updates (which creates a new object every render)
   // eslint-disable-next-line react-hooks/exhaustive-deps
