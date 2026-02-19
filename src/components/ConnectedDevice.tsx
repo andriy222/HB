@@ -419,6 +419,7 @@ export default function ConnectedDevice({
     try {
       clearLogsAndEvents();
       log("Discovering services & characteristics…");
+
       const stillConnected = await connectedDevice.isConnected();
       if (!stillConnected) {
         log("Device no longer connected", "err");
@@ -503,6 +504,10 @@ export default function ConnectedDevice({
       // Give CCCD write a brief moment, then send command
       await delay(150);
       requestLogs();
+
+      // Start keep-alive after connection is fully established
+      // Coaster disconnects after 25s without messages, so we ping every 20s
+      startKeepAlive();
     } catch (e) {
       log(`Flow error: ${String(e)}`, "err");
     }
@@ -520,23 +525,37 @@ export default function ConnectedDevice({
   // Send GET BATT every 20s to maintain connection
   const keepAliveRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => {
-    if (connectedDevice && isConnected && targetTxRef.current) {
-      // Start keep-alive interval
-      keepAliveRef.current = setInterval(() => {
-        if (targetTxRef.current && !isDownloadingRef.current) {
-          sendAsciiCommand("GET BATT\r\n");
-        }
-      }, 20000); // 20 seconds
-
-      return () => {
-        if (keepAliveRef.current) {
-          clearInterval(keepAliveRef.current);
-          keepAliveRef.current = null;
-        }
-      };
+  const startKeepAlive = () => {
+    // Clear any existing interval first
+    if (keepAliveRef.current) {
+      clearInterval(keepAliveRef.current);
+      keepAliveRef.current = null;
     }
-  }, [connectedDevice?.id, isConnected]);
+
+    // Start new keep-alive interval
+    keepAliveRef.current = setInterval(() => {
+      if (targetTxRef.current && !isDownloadingRef.current) {
+        sendAsciiCommand("GET BATT\r\n");
+      }
+    }, 20000); // 20 seconds
+
+    log("Keep-alive started (20s interval)");
+  };
+
+  const stopKeepAlive = () => {
+    if (keepAliveRef.current) {
+      clearInterval(keepAliveRef.current);
+      keepAliveRef.current = null;
+    }
+  };
+
+  // Cleanup keep-alive on unmount or disconnect
+  useEffect(() => {
+    if (!isConnected) {
+      stopKeepAlive();
+    }
+    return () => stopKeepAlive();
+  }, [isConnected]);
 
   const requestLogs = () => {
     clearLogsAndEvents();
@@ -772,12 +791,21 @@ export default function ConnectedDevice({
       log("Cannot send: TX not set", "err");
       return;
     }
+
+    const b64Data = asciiToB64(ascii);
+    const isStillConnected = await connectedDevice.isConnected().catch(() => false);
+
+    if (!isStillConnected) {
+      log("Cannot send: device disconnected", "err");
+      return;
+    }
+
     try {
       // Nordic UART Service TX typically uses Write Without Response
       await connectedDevice.writeCharacteristicWithoutResponseForService(
         tx.service,
         tx.char,
-        asciiToB64(ascii)
+        b64Data
       );
       log(`TX: ${ascii.trim()}`);
     } catch (e) {
@@ -786,11 +814,10 @@ export default function ConnectedDevice({
         await connectedDevice.writeCharacteristicWithResponseForService(
           tx.service,
           tx.char,
-          asciiToB64(ascii)
+          b64Data
         );
         log(`TX (with response): ${ascii.trim()}`);
       } catch (e2) {
-        logger.warn("Write failed:", e2);
         log("Write failed", "err");
       }
     }
