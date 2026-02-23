@@ -230,13 +230,11 @@ export function useCoasterSession(config: CoasterSessionConfig) {
       logger.info(`📊 Data complete: ${count} logs`);
       getAllInProgressRef.current = false;
 
-      // Auto-sync after data complete
-      if (count === 0 || count >= BLE_PROTOCOL.MAX_EXPECTED_LOGS) {
-        logger.info(`📊 Triggering GOAL+SYNC (count=${count})`);
-        setTimeout(() => {
-          sendGoalAndSync();
-        }, BLE_TIMEOUTS.AUTO_SYNC_DELAY);
-      }
+      // Always send GOAL+SYNC after data transfer completes
+      logger.info(`📊 Triggering GOAL+SYNC (count=${count})`);
+      setTimeout(() => {
+        sendGoalAndSync();
+      }, BLE_TIMEOUTS.AUTO_SYNC_DELAY);
     },
     onGoalAck: () => {
       logger.info('✅ GOAL confirmed, sending SYNC...');
