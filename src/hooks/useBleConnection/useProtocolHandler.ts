@@ -44,6 +44,7 @@ export function useProtocolHandler(callbacks?: ProtocolHandlerCallbacks) {
   const awaitingSyncAckRef = useRef(false);
   const dlCountRef = useRef(0);
   const idleTimerRef = useRef<any>(null);
+  const noResponseTimerRef = useRef<any>(null);
   const ackTimeoutRef = useRef<any>(null);
   const callbacksRef = useRef(callbacks);
   callbacksRef.current = callbacks;
@@ -53,12 +54,21 @@ export function useProtocolHandler(callbacks?: ProtocolHandlerCallbacks) {
 
     if (trimmed.startsWith("SDT")) {
       logger.debug("📊 SDT: Data transfer starting");
+      if (noResponseTimerRef.current) {
+        clearTimeout(noResponseTimerRef.current);
+        noResponseTimerRef.current = null;
+      }
       setStateAndRef("receiving");
       callbacksRef.current?.onDataStart?.();
       return true;
     }
 
     if (trimmed.startsWith("DL")) {
+      // Data is coming — clear the no-response safety timer
+      if (noResponseTimerRef.current) {
+        clearTimeout(noResponseTimerRef.current);
+        noResponseTimerRef.current = null;
+      }
       dlCountRef.current += 1;
       setDlCount(dlCountRef.current);
 
@@ -83,6 +93,10 @@ export function useProtocolHandler(callbacks?: ProtocolHandlerCallbacks) {
       if (idleTimerRef.current) {
         clearTimeout(idleTimerRef.current);
         idleTimerRef.current = null;
+      }
+      if (noResponseTimerRef.current) {
+        clearTimeout(noResponseTimerRef.current);
+        noResponseTimerRef.current = null;
       }
 
       callbacksRef.current?.onDataComplete?.(dlCountRef.current);
@@ -160,11 +174,24 @@ export function useProtocolHandler(callbacks?: ProtocolHandlerCallbacks) {
 
 
 
+  const NO_RESPONSE_TIMEOUT_MS = 5000;
+
   const startDataTransfer = useCallback(() => {
     setStateAndRef("requesting");
     dlCountRef.current = 0;
     setDlCount(0);
     logger.debug("📥 Starting data transfer...");
+
+    // Safety: if coaster sends no SDT/DL/END within 5s, auto-complete with 0 logs.
+    // This handles the case where coaster has no data and stays silent after GET ALL.
+    if (noResponseTimerRef.current) clearTimeout(noResponseTimerRef.current);
+    noResponseTimerRef.current = setTimeout(() => {
+      if (stateRef.current === "requesting") {
+        logger.warn("⚠️ No response to GET ALL within 5s — completing with 0 logs");
+        setStateAndRef("idle");
+        callbacksRef.current?.onDataComplete?.(0);
+      }
+    }, NO_RESPONSE_TIMEOUT_MS);
   }, []);
 
 
@@ -183,6 +210,10 @@ export function useProtocolHandler(callbacks?: ProtocolHandlerCallbacks) {
     if (ackTimeoutRef.current) {
       clearTimeout(ackTimeoutRef.current);
       ackTimeoutRef.current = null;
+    }
+    if (noResponseTimerRef.current) {
+      clearTimeout(noResponseTimerRef.current);
+      noResponseTimerRef.current = null;
     }
   }, []);
 
