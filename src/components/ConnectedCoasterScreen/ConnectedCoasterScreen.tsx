@@ -3,9 +3,8 @@ import { View, Image, Alert } from "react-native";
 import { Text } from "react-native-paper";
 import PaperButton from "../../UI/PaperButton/PaperButton";
 import { styles } from "./ConnectedCoasterScreen.styles";
-import { useBleScan } from "../../hooks/useScanDevices";
 import { usePermissions } from "../../hooks/usePermissions";
-import { useBleScanWithMock } from "../../hooks/MockBleProvider/useBleScanWithMock";
+import { useBle } from "../../providers/BleProvider";
 import { logger } from "../../utils/logger";
 
 const coasterImage = require("../../../assets/coaster.png");
@@ -22,7 +21,7 @@ export default function ConnectCoasterScreen({
   const [connectionState, setConnectionState] =
     useState<ConnectionState>("idle");
   const { startScan, devices, connectToDevice, stopScan } =
-    useBleScanWithMock();
+    useBle();
   const { hasPermission, request } = usePermissions();
   const handleConnect = async () => {
     // Перевірити дозволи

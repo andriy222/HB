@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Platform } from 'react-native';
-import { useBleScanWithMock } from '../MockBleProvider/useBleScanWithMock';
+import { useBle } from '../../providers/BleProvider';
 import { useGlobalConnectionMonitor } from '../useConnectionMonitor';
 import { useConnectionStore } from '../../store/connectionStore';
 
@@ -21,7 +21,7 @@ export interface ConnectionStatus {
 
 export function useConnectionStatus(): ConnectionStatus {
   const updateCoaster = useConnectionStore((state) => state.updateCoaster);
-  const { linkUp, connectedDevice } = useBleScanWithMock();
+  const { linkUp, connectedDevice } = useBle();
   const monitor = useGlobalConnectionMonitor();
   const [bluetoothEnabled, setBluetoothEnabled] = useState(true);
 

@@ -37,6 +37,55 @@ export const useBleScan = () => {
 
   useEffect(() => {
     managerRef.current = new BleManager();
+
+    // Check for already-connected devices (e.g., from OS-level auto-reconnect after bonding)
+    const checkAlreadyConnected = async () => {
+      if (!managerRef.current) return;
+      try {
+        // Wait a moment for BLE stack to initialize
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        const connected = await managerRef.current.connectedDevices([TARGET_SERVICE]);
+        logger.info(`[BLE] Already connected devices: ${connected.length}`);
+
+        if (connected.length > 0) {
+          const device = connected[0];
+          logger.info(`[BLE] Found already-connected device: ${device.name} (${device.id})`);
+
+          // Discover services if not already done
+          const ready = await device.discoverAllServicesAndCharacteristics();
+          const svcs = await ready.services();
+          const hasTarget = svcs.some(s => s.uuid.toLowerCase() === TARGET_SERVICE);
+
+          if (hasTarget) {
+            logger.info('[BLE] Already-connected device has NUS service, using it');
+            setConnectedDevice(ready);
+            setLinkUp(true);
+            await setLastDeviceId(device.id);
+
+            // Set up disconnect listener
+            disconnectSubRef.current?.remove();
+            disconnectSubRef.current = managerRef.current.onDeviceDisconnected(
+              device.id,
+              () => {
+                setLinkUp(false);
+                if (!userInitiatedDisconnectRef.current) {
+                  logger.info('🔌 Unexpected disconnect from already-connected device');
+                  setIsReconnecting(true);
+                  reconnectActiveRef.current = true;
+                  scheduleReconnect(device.id, 0);
+                }
+              },
+            );
+          }
+        }
+      } catch (e) {
+        logger.warn('[BLE] Error checking already-connected devices:', e);
+      }
+    };
+
+    checkAlreadyConnected();
+
     return () => {
       disconnectSubRef.current?.remove();
       if (reconnectTimerRef.current) {

@@ -1,9 +1,17 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Device } from 'react-native-ble-plx';
 import { base64Decode, base64Encode } from '../../utils/base64';
-import { captureBLEError, trackBLEEvent } from '../../utils/sentry';
 import { logger } from '../../utils/logger';
 import { REGEX_PATTERNS, VALIDATION, PROTOCOL_COMMANDS } from '../../constants/appConstants';
+
+/** Minimum interval between identical commands (ms) to prevent duplicates */
+const COMMAND_DEDUP_WINDOW = 500;
+
+/**
+ * Global command tracking for deduplication across all hook instances.
+ * This prevents multiple components/hooks from sending the same command.
+ */
+const globalLastCommand: { cmd: string; time: number } | null = { cmd: '', time: 0 };
 
 interface BLEConfig {
   targetService: string;
@@ -34,6 +42,9 @@ export function useBLEConnection(
   const lineBufferRef = useRef<string>('');
   const subscriptionRef = useRef<any>(null);
   const seenIndicesRef = useRef<Set<number>>(new Set());
+
+  // Command deduplication: track last command and timestamp
+  const lastCommandRef = useRef<{ cmd: string; time: number } | null>(null);
 
   const { targetService, rxCharacteristic, txCharacteristic } = config;
 
@@ -106,14 +117,21 @@ export function useBLEConnection(
     return { index, ml, timestamp, timestampDate, raw: line };
   }, [parseCoasterTimestamp]);
 
-  const parseDEVLine = useCallback((line: string): number | null => {
-    if (!line.startsWith(PROTOCOL_COMMANDS.DEV)) {return null;}
-    const match = REGEX_PATTERNS.DEV_BATTERY.exec(line);
+  /**
+   * Parse BATT line: "BATT <millivolts>"
+   * Firmware responds to GET BATT with battery voltage in mV.
+   * Convert mV to percentage (3000mV=0%, 4200mV=100%).
+   */
+  const parseBATTLine = useCallback((line: string): number | null => {
+    if (!line.startsWith(PROTOCOL_COMMANDS.BATT)) {return null;}
+    const match = REGEX_PATTERNS.BATT_LEVEL.exec(line);
     if (!match) {return null;}
-    const level = parseInt(match[1], 10);
-    return Number.isFinite(level)
-      ? Math.max(VALIDATION.BATTERY_MIN, Math.min(VALIDATION.BATTERY_MAX, level))
-      : null;
+    const mV = parseInt(match[1], 10);
+    if (!Number.isFinite(mV)) {return null;}
+
+    // Convert mV to percentage (lithium battery: 3000mV=0%, 4200mV=100%)
+    const pct = Math.round(((mV - 3000) / (4200 - 3000)) * 100);
+    return Math.max(VALIDATION.BATTERY_MIN, Math.min(VALIDATION.BATTERY_MAX, pct));
   }, []);
 
   const handleLine = useCallback((line: string) => {
@@ -133,12 +151,12 @@ export function useBLEConnection(
       return;
     }
 
-    const battery = parseDEVLine(trimmed);
+    const battery = parseBATTLine(trimmed);
     if (battery !== null) {
       setBatteryLevel(battery);
       return;
     }
-  }, [parseDLLine, parseDEVLine, onDataReceived, onLineReceived]);
+  }, [parseDLLine, parseBATTLine, onDataReceived, onLineReceived]);
 
   const subscribe = useCallback(async () => {
     if (!device || !isConnected) {return;}
@@ -163,7 +181,6 @@ export function useBLEConnection(
         (error, characteristic) => {
           if (error) {
             logger.warn('BLE RX error', error);
-            captureBLEError('subscribe', error, device.id);
             return;
           }
 
@@ -183,11 +200,9 @@ export function useBLEConnection(
       subscriptionRef.current = subscription;
       setIsReady(true);
 
-      trackBLEEvent('rx_subscribed', { deviceId: device.id });
       logger.ble('RX subscribed successfully');
     } catch (e) {
       logger.error('Subscribe failed', e);
-      captureBLEError('subscribe', e as Error, device?.id);
       setIsReady(false);
     }
   }, [device, isConnected, targetService, rxCharacteristic, decodeBase64, handleLine]);
@@ -197,6 +212,36 @@ export function useBLEConnection(
       logger.warn('Cannot send: not connected');
       return false;
     }
+
+    // Command deduplication: skip if same command sent within window
+    // Uses BOTH global and per-instance tracking to catch duplicates from multiple sources
+    const now = Date.now();
+    const cmdKey = command.trim();
+
+    // Global deduplication (catches multiple hook instances sending same command)
+    if (globalLastCommand) {
+      const elapsed = now - globalLastCommand.time;
+      if (globalLastCommand.cmd === cmdKey && elapsed < COMMAND_DEDUP_WINDOW) {
+        logger.warn(`⏭️ Duplicate command blocked (global): "${cmdKey}" (${elapsed}ms ago)`);
+        return true;
+      }
+    }
+
+    // Per-instance deduplication (catches same hook instance sending rapidly)
+    if (lastCommandRef.current) {
+      const elapsed = now - lastCommandRef.current.time;
+      if (lastCommandRef.current.cmd === cmdKey && elapsed < COMMAND_DEDUP_WINDOW) {
+        logger.warn(`⏭️ Duplicate command blocked (instance): "${cmdKey}" (${elapsed}ms ago)`);
+        return true;
+      }
+    }
+
+    // Update both tracking mechanisms
+    if (globalLastCommand) {
+      globalLastCommand.cmd = cmdKey;
+      globalLastCommand.time = now;
+    }
+    lastCommandRef.current = { cmd: cmdKey, time: now };
 
     try {
       const base64 = base64Encode(command);
@@ -234,7 +279,6 @@ export function useBLEConnection(
       }
     } catch (e) {
       logger.error('Send failed', e);
-      captureBLEError('send_command', e as Error, device?.id);
       return false;
     }
   }, [device, isConnected, targetService, txCharacteristic]);

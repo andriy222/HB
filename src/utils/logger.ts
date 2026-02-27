@@ -1,5 +1,3 @@
-import { addBreadcrumb } from './sentry';
-
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'ble';
 
 interface LoggerConfig {
@@ -101,8 +99,6 @@ export function logError(message: string, error?: Error | any) {
   if (shouldLog('error')) {
     console.error(...formatMessage('error', message, error));
   }
-  // Always send errors to Sentry
-  addBreadcrumb(message, 'error', 'error', { error: String(error) });
 }
 
 /**
@@ -112,8 +108,6 @@ export function logBLE(message: string, data?: any) {
   if (shouldLog('ble')) {
     console.log(...formatMessage('ble', message, data));
   }
-  // Send BLE logs to Sentry as breadcrumbs for debugging
-  addBreadcrumb(message, 'bluetooth', 'info', data);
 }
 
 /**

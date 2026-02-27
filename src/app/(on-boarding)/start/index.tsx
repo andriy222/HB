@@ -11,8 +11,7 @@ import { AVATAR_SIZE, FEMALE, MALE } from "../../../utils/constants";
 import ConnectionModal from "../../../UI/ConnectionModal/ConnectionModal";
 import { useRouter } from "expo-router";
 import { useBleStore } from "../../../store/bleStore";
-import { useBleScan } from "../../../hooks/useScanDevices";
-import { useBleScanWithMock } from "../../../hooks/MockBleProvider/useBleScanWithMock";
+import { useBle } from "../../../providers/BleProvider";
 import { logger } from "../../../utils/logger";
 
 const { height } = Dimensions.get("window");
@@ -20,7 +19,7 @@ const { height } = Dimensions.get("window");
 const Start = () => {
   const router = useRouter();
   const { setOnboardingComplete } = useBleStore();
-  const { linkUp, connectedDevice } = useBleScanWithMock();
+  const { linkUp, connectedDevice } = useBle();
   const [selectedGender, setSelectedGender] = useState<Gender>("male");
   const [modalVisible, setModalVisible] = useState(false);
 
