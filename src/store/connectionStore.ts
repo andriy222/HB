@@ -17,6 +17,7 @@ export interface ConnectionState {
   };
   coaster: {
     isConnected: boolean;
+    isSleeping: boolean;
   };
 }
 
@@ -25,6 +26,7 @@ interface ConnectionStore extends ConnectionState {
   updateBle: (isConnected: boolean, isReconnecting: boolean) => void;
   updateInternet: (isConnected: boolean) => void;
   updateCoaster: (isConnected: boolean) => void;
+  setCoasterSleeping: (isSleeping: boolean) => void;
   reset: () => void;
 
   // Computed
@@ -36,7 +38,7 @@ interface ConnectionStore extends ConnectionState {
 const initialState: ConnectionState = {
   ble: { isConnected: false, isReconnecting: false },
   internet: { isConnected: false },
-  coaster: { isConnected: false },
+  coaster: { isConnected: false, isSleeping: false },
 };
 
 /**
@@ -53,7 +55,17 @@ export const useConnectionStore = create<ConnectionStore>((set, get) => ({
     set({ internet: { isConnected } }),
 
   updateCoaster: (isConnected) =>
-    set({ coaster: { isConnected } }),
+    set((state) => ({
+      coaster: {
+        ...state.coaster,
+        isConnected,
+        // Reset sleeping when reconnected
+        ...(isConnected ? { isSleeping: false } : {}),
+      },
+    })),
+
+  setCoasterSleeping: (isSleeping) =>
+    set((state) => ({ coaster: { ...state.coaster, isSleeping } })),
 
   reset: () => set(initialState),
 

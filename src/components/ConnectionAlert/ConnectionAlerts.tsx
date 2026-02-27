@@ -1,14 +1,16 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { View, StyleSheet, Alert, Linking, Text } from "react-native";
 import { useRouter } from "expo-router";
 import { useConnectionStatus } from "../../hooks/useConnectionStatus/useConnectionStatus";
 import { useGlobalConnectionMonitor } from "../../hooks/useConnectionMonitor";
+import { useConnectionStore } from "../../store/connectionStore";
 import ConnectionAlert from "./ConnectionAlert";
 
 export default function ConnectionAlerts() {
   const router = useRouter();
   const status = useConnectionStatus();
   const monitor = useGlobalConnectionMonitor();
+  const coasterSleeping = useConnectionStore((state) => state.coaster.isSleeping);
 
   const handleCoasterConnect = () => {
     router.push("/(on-boarding)/start");
@@ -36,8 +38,11 @@ export default function ConnectionAlerts() {
     );
   };
 
+  // Don't count sleeping coaster as an issue — it's expected after SYNC
+  const coasterDisconnected = !status.coaster.isConnected && !coasterSleeping;
+
   const hasIssues =
-    !status.coaster.isConnected ||
+    coasterDisconnected ||
     !status.bluetooth.isEnabled ||
     !status.internet.isConnected;
 
@@ -47,7 +52,7 @@ export default function ConnectionAlerts() {
 
   return (
     <View style={styles.container}>
-      {!status.coaster.isConnected && (
+      {coasterDisconnected && (
         <View>
           <ConnectionAlert
             type="coaster"

@@ -32,64 +32,82 @@ export function useProtocolHandler(callbacks?: ProtocolHandlerCallbacks) {
   const [state, setState] = useState<ProtocolState>("idle");
   const [dlCount, setDlCount] = useState(0);
   const [lastError, setLastError] = useState<string | null>(null);
-  
+
+  // Use ref to track state for closures (avoids stale state in timeouts)
+  const stateRef = useRef<ProtocolState>("idle");
+  const setStateAndRef = (newState: ProtocolState) => {
+    stateRef.current = newState;
+    setState(newState);
+  };
+
   const awaitingGoalAckRef = useRef(false);
   const awaitingSyncAckRef = useRef(false);
   const dlCountRef = useRef(0);
   const idleTimerRef = useRef<any>(null);
+  const ackTimeoutRef = useRef<any>(null);
+  const callbacksRef = useRef(callbacks);
+  callbacksRef.current = callbacks;
 
   const handleProtocolLine = useCallback((line: string) => {
     const trimmed = line.trim().toUpperCase();
 
     if (trimmed.startsWith("SDT")) {
       logger.debug("📊 SDT: Data transfer starting");
-      setState("receiving");
-      callbacks?.onDataStart?.();
+      setStateAndRef("receiving");
+      callbacksRef.current?.onDataStart?.();
       return true;
     }
 
     if (trimmed.startsWith("DL")) {
       dlCountRef.current += 1;
       setDlCount(dlCountRef.current);
-      
+
       if (idleTimerRef.current) {
         clearTimeout(idleTimerRef.current);
       }
       idleTimerRef.current = setTimeout(() => {
-        if (state === "receiving") {
+        // Use ref to avoid stale closure over render-time state
+        if (stateRef.current === "receiving") {
           logger.debug("⏱️ DL stream idle → auto-completing");
           handleProtocolLine("END");
         }
       }, BLE_TIMEOUTS.PROTOCOL_IDLE_TIMEOUT);
-      
+
       return true;
     }
 
     if (trimmed.startsWith("END")) {
       logger.info(`📊 END: ${dlCountRef.current} logs received`);
-      setState("idle");
-      
+      setStateAndRef("idle");
+
       if (idleTimerRef.current) {
         clearTimeout(idleTimerRef.current);
         idleTimerRef.current = null;
       }
-      
-      callbacks?.onDataComplete?.(dlCountRef.current);
+
+      callbacksRef.current?.onDataComplete?.(dlCountRef.current);
       return true;
     }
+
     if (trimmed === "ACK") {
+      // Clear ACK timeout on any ACK
+      if (ackTimeoutRef.current) {
+        clearTimeout(ackTimeoutRef.current);
+        ackTimeoutRef.current = null;
+      }
+
       if (awaitingGoalAckRef.current) {
         logger.info("✅ ACK: GOAL confirmed");
         awaitingGoalAckRef.current = false;
-        callbacks?.onGoalAck?.();
+        callbacksRef.current?.onGoalAck?.();
         return true;
       }
 
       if (awaitingSyncAckRef.current) {
         logger.info("✅ ACK: SYNC confirmed");
         awaitingSyncAckRef.current = false;
-        setState("complete");
-        callbacks?.onSyncAck?.();
+        setStateAndRef("complete");
+        callbacksRef.current?.onSyncAck?.();
         return true;
       }
 
@@ -100,30 +118,50 @@ export function useProtocolHandler(callbacks?: ProtocolHandlerCallbacks) {
     if (trimmed.startsWith("ERR")) {
       const message = line.substring(3).trim() || "Unknown error";
       logger.error(`❌ ERR: ${message}`);
-      setState("error");
+      setStateAndRef("error");
       setLastError(message);
-      callbacks?.onError?.(message);
+      callbacksRef.current?.onError?.(message);
       return true;
     }
 
     return false;
-  }, [state, callbacks]);
+  }, []);
+
+  const ACK_TIMEOUT_MS = 5000;
 
   const expectGoalAck = useCallback(() => {
     awaitingGoalAckRef.current = true;
     logger.debug("⏳ Waiting for GOAL ACK...");
+
+    if (ackTimeoutRef.current) clearTimeout(ackTimeoutRef.current);
+    ackTimeoutRef.current = setTimeout(() => {
+      if (awaitingGoalAckRef.current) {
+        logger.warn("⚠️ GOAL ACK timeout (5s)");
+        awaitingGoalAckRef.current = false;
+        callbacksRef.current?.onError?.("GOAL ACK timeout");
+      }
+    }, ACK_TIMEOUT_MS);
   }, []);
 
   const expectSyncAck = useCallback(() => {
     awaitingSyncAckRef.current = true;
-    setState("syncing");
+    setStateAndRef("syncing");
     logger.debug("⏳ Waiting for SYNC ACK...");
+
+    if (ackTimeoutRef.current) clearTimeout(ackTimeoutRef.current);
+    ackTimeoutRef.current = setTimeout(() => {
+      if (awaitingSyncAckRef.current) {
+        logger.warn("⚠️ SYNC ACK timeout (5s)");
+        awaitingSyncAckRef.current = false;
+        callbacksRef.current?.onError?.("SYNC ACK timeout");
+      }
+    }, ACK_TIMEOUT_MS);
   }, []);
 
 
 
   const startDataTransfer = useCallback(() => {
-    setState("requesting");
+    setStateAndRef("requesting");
     dlCountRef.current = 0;
     setDlCount(0);
     logger.debug("📥 Starting data transfer...");
@@ -131,16 +169,20 @@ export function useProtocolHandler(callbacks?: ProtocolHandlerCallbacks) {
 
 
   const reset = useCallback(() => {
-    setState("idle");
+    setStateAndRef("idle");
     setDlCount(0);
     setLastError(null);
     dlCountRef.current = 0;
     awaitingGoalAckRef.current = false;
     awaitingSyncAckRef.current = false;
-    
+
     if (idleTimerRef.current) {
       clearTimeout(idleTimerRef.current);
       idleTimerRef.current = null;
+    }
+    if (ackTimeoutRef.current) {
+      clearTimeout(ackTimeoutRef.current);
+      ackTimeoutRef.current = null;
     }
   }, []);
 

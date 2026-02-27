@@ -69,12 +69,19 @@ export const useBleScan = () => {
               device.id,
               () => {
                 setLinkUp(false);
-                if (!userInitiatedDisconnectRef.current) {
-                  logger.info('🔌 Unexpected disconnect from already-connected device');
-                  setIsReconnecting(true);
-                  reconnectActiveRef.current = true;
-                  scheduleReconnect(device.id, 0);
+                if (userInitiatedDisconnectRef.current) {return;}
+
+                // Check if expected disconnect after SYNC
+                const { coaster } = useConnectionStore.getState();
+                if (coaster.isSleeping) {
+                  logger.info('🔌 Expected disconnect after SYNC — coaster sleeping');
+                  return;
                 }
+
+                logger.info('🔌 Unexpected disconnect from already-connected device');
+                setIsReconnecting(true);
+                reconnectActiveRef.current = true;
+                scheduleReconnect(device.id, 0);
               },
             );
           }
@@ -108,7 +115,9 @@ export const useBleScan = () => {
     setNoTargetFound(false);
     foundTargetRef.current = false;
 
-    managerRef.current.startDeviceScan(null, null, (error, device) => {
+    // allowDuplicates on iOS improves discovery of intermittently advertising devices
+    const scanOptions = Platform.OS === 'ios' ? { allowDuplicates: true } : null;
+    managerRef.current.startDeviceScan(null, scanOptions, (error, device) => {
       if (error) {
         setIsScanning(false);
         return;
@@ -299,14 +308,7 @@ export const useBleScan = () => {
             setIsConnecting(false);
             setConnectingDeviceId(null);
 
-            // Auto-reconnect on unexpected drops (e.g., <420 logs/no SYNC)
-            if (!userInitiatedDisconnectRef.current) {
-              logger.info('🔌 Unexpected disconnect, starting reconnect sequence');
-              autoReconnectAttemptsRef.current = 0;
-              setIsReconnecting(true);
-              reconnectActiveRef.current = true;
-              scheduleReconnect(deviceId, 0);
-            } else {
+            if (userInitiatedDisconnectRef.current) {
               // User-initiated disconnect - reset all reconnect state
               logger.debug('🔌 User-initiated disconnect');
               autoReconnectAttemptsRef.current = 0;
@@ -316,7 +318,25 @@ export const useBleScan = () => {
                 clearTimeout(reconnectTimerRef.current);
                 reconnectTimerRef.current = null;
               }
+              return;
             }
+
+            // Check if this is an expected disconnect after SYNC ACK
+            const { coaster } = useConnectionStore.getState();
+            if (coaster.isSleeping) {
+              logger.info('🔌 Expected disconnect after SYNC — coaster is sleeping to save power');
+              // Don't auto-reconnect — this is normal behavior
+              setIsReconnecting(false);
+              reconnectActiveRef.current = false;
+              return;
+            }
+
+            // Unexpected disconnect — start auto-reconnect
+            logger.info('🔌 Unexpected disconnect, starting reconnect sequence');
+            autoReconnectAttemptsRef.current = 0;
+            setIsReconnecting(true);
+            reconnectActiveRef.current = true;
+            scheduleReconnect(deviceId, 0);
           },
         );
 
@@ -333,28 +353,43 @@ export const useBleScan = () => {
     [stopScan, scheduleReconnect],
   );
 
-  // Auto-reconnect to last device if available
-  // Note: On iOS, device UUIDs can change after Bluetooth restart,
-  // so auto-reconnect may fail. In that case, user needs to scan again.
+  // Auto-reconnect to last device on startup with retry
+  // Keep saved device ID on failure so future reconnect attempts can try again
   useEffect(() => {
     let cancelled = false;
     const tryReconnect = async () => {
       const lastId = await getLastDeviceId();
       if (!lastId || cancelled) {return;}
 
-      logger.debug(`🔄 Auto-reconnect to last device: ${lastId}`);
-      const device = await connectToDevice(lastId);
+      // Wait for BLE stack to initialize
+      await new Promise(resolve => setTimeout(resolve, 500));
+      if (cancelled) {return;}
 
-      // If auto-reconnect fails on iOS, clear saved ID as UUID may have changed
-      if (!device && Platform.OS === 'ios') {
-        logger.warn('⚠️ iOS auto-reconnect failed, clearing saved device ID');
-        await clearLastDeviceId();
+      logger.debug(`🔄 Auto-reconnect to last device: ${lastId}`);
+
+      // Try up to 3 times with increasing delays
+      for (let attempt = 0; attempt < 3; attempt++) {
+        if (cancelled) {return;}
+
+        const device = await connectToDevice(lastId);
+        if (device) {
+          logger.info(`✅ Auto-reconnect succeeded on attempt ${attempt + 1}`);
+          return;
+        }
+
+        if (attempt < 2) {
+          const delay = 1000 * Math.pow(2, attempt); // 1s, 2s
+          logger.debug(`🔄 Auto-reconnect attempt ${attempt + 1} failed, retrying in ${delay}ms`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
       }
+
+      logger.warn('⚠️ Auto-reconnect failed after 3 attempts — user can scan manually');
+      // Don't clear saved device ID — keep it for next app launch
     };
-    const t = setTimeout(tryReconnect, 100);
+    tryReconnect();
     return () => {
       cancelled = true;
-      clearTimeout(t);
     };
   }, [connectToDevice]);
 

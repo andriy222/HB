@@ -6,6 +6,7 @@ import { useReconnectHandler } from './useRecconectHandler';
 import { useBLEWrapper } from '../MockBleProvider/useBleWrapper';
 import { getSelectedGender } from '../../utils/storage';
 import { BLE_DEVICE, BLE_PROTOCOL, BLE_TIMEOUTS } from '../../constants/bleConstants';
+import { useConnectionStore } from '../../store/connectionStore';
 import { logger } from '../../utils/logger';
 
 /**
@@ -82,8 +83,9 @@ export function useCoasterSession(config: CoasterSessionConfig) {
     onDataComplete: (count) => {
       logger.info(`📊 Data complete: ${count} logs`);
 
-      // Auto-sync if we got 0 logs or >= max expected logs
-      if ((count === 0 || count >= BLE_PROTOCOL.MAX_EXPECTED_LOGS) && !autoSyncRef.current) {
+      // Always send GOAL and SYNC after data transfer completes
+      // (previously only triggered for 0 or >=410 logs — partial data was ignored)
+      if (!autoSyncRef.current) {
         autoSyncRef.current = true;
         setTimeout(() => {
           sendGoalAndSync();
@@ -95,8 +97,10 @@ export function useCoasterSession(config: CoasterSessionConfig) {
       sendTimeSync();
     },
     onSyncAck: () => {
-      logger.info('✅ SYNC complete, session ready');
+      logger.info('✅ SYNC complete — coaster will disconnect BLE to save power');
       autoSyncRef.current = false;
+      // Mark expected disconnect: coaster turns off BLE after SYNC ACK
+      useConnectionStore.getState().setCoasterSleeping(true);
     },
     onError: (msg) => {
       logger.error(`❌ Coaster error: ${msg}`);
@@ -128,6 +132,30 @@ export function useCoasterSession(config: CoasterSessionConfig) {
   );
 
   /**
+   * Full command sequence per firmware requirements:
+   * GET BATT → GET ALL → (data/END) → GOAL → ACK → SYNC → ACK → (coaster disconnects)
+   */
+  const startSessionSequence = useCallback(async () => {
+    // 1. GET BATT first (firmware dev requirement)
+    const battOk = await ble.sendCommand('GET BATT\r\n');
+    if (battOk) {
+      logger.info('🔋 GET BATT sent');
+    }
+
+    // Small delay for coaster to process
+    await new Promise(resolve => setTimeout(resolve, 200));
+
+    // 2. GET ALL to retrieve stored data
+    protocolRef.current.startDataTransfer();
+    const allOk = await ble.sendCommand('GET ALL\r\n');
+    if (allOk) {
+      logger.info('📥 GET ALL sent');
+      ble.resetSeenIndices();
+    }
+    // 3. GOAL and SYNC will be sent automatically after data complete (onDataComplete callback)
+  }, [ble]);
+
+  /**
    * Auto-start or restore session on BLE connect
    *
    * PRD: "Backgrounding/quit: coaster keeps logging; on reconnect,
@@ -135,6 +163,9 @@ export function useCoasterSession(config: CoasterSessionConfig) {
    */
   useEffect(() => {
     if (!isConnected || !device || !ble.isReady) {return;}
+
+    // Reset sleeping state on new connection
+    useConnectionStore.getState().setCoasterSleeping(false);
 
     // Check if we have an active restored session
     if (session.session?.isActive && session.session?.startTime) {
@@ -147,9 +178,8 @@ export function useCoasterSession(config: CoasterSessionConfig) {
 
         logger.info('🔄 Session restored, requesting backfill...');
 
-        // Request all logs from coaster to catch up on missed data
         setTimeout(() => {
-          requestLogs();
+          startSessionSequence();
         }, BLE_TIMEOUTS.BACKFILL_STABILIZATION_DELAY);
       }
     } else if (!sessionStartedRef.current) {
@@ -163,10 +193,8 @@ export function useCoasterSession(config: CoasterSessionConfig) {
 
       logger.info(`🏁 New session started (${gender})`);
 
-      // Firmware requires: GET ALL → GOAL → SYNC sequence
-      // Request logs first, then GOAL/SYNC will be sent after data complete
       setTimeout(() => {
-        requestLogs();
+        startSessionSequence();
       }, BLE_TIMEOUTS.BACKFILL_STABILIZATION_DELAY);
     }
   }, [isConnected, device, ble.isReady]);
@@ -226,34 +254,10 @@ export function useCoasterSession(config: CoasterSessionConfig) {
     return ok;
   }, [ble]);
 
-  /**
-   * Keep-alive: Coaster disconnects after 25s without messages
-   * Send GET BATT every 20s to maintain connection
-   */
-  const keepAliveRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => {
-    if (isConnected && ble.isReady) {
-      // Start keep-alive interval
-      keepAliveRef.current = setInterval(() => {
-        ble.sendCommand('GET BATT\r\n').then((ok) => {
-          if (ok) {
-            logger.debug('💓 Keep-alive ping');
-          }
-        });
-      }, BLE_TIMEOUTS.KEEP_ALIVE_INTERVAL);
-
-      logger.info('💓 Keep-alive started (20s interval)');
-    }
-
-    return () => {
-      if (keepAliveRef.current) {
-        clearInterval(keepAliveRef.current);
-        keepAliveRef.current = null;
-        logger.debug('💓 Keep-alive stopped');
-      }
-    };
-  }, [isConnected, ble.isReady]);
+  // Note: Keep-alive interval removed per firmware dev feedback.
+  // GET BATT is sent once at session start (in startSessionSequence).
+  // The command sequence (GET BATT → GET ALL → GOAL → SYNC) completes
+  // well within the 25s coaster timeout, then coaster disconnects after SYNC ACK.
 
   /**
    * Send GOAL then SYNC (auto flow)
