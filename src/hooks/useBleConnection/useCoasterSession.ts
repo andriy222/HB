@@ -180,10 +180,6 @@ export function useCoasterSession(config: CoasterSessionConfig) {
     }
     getAllInProgressRef.current = true;
 
-    // Send GET BATT first to get battery level (required before GET ALL)
-    await bleRef.current.sendCommand('GET BATT\r\n');
-    logger.info('🔋 GET BATT sent');
-
     protocolRef.current.startDataTransfer();
     const ok = await bleRef.current.sendCommand('GET ALL\r\n');
     if (ok) {
@@ -194,6 +190,22 @@ export function useCoasterSession(config: CoasterSessionConfig) {
     }
     return ok;
   }, []);
+
+  /**
+   * Full protocol sequence: GET BATT → wait for response → GET ALL
+   * Firmware requires GET BATT first, and needs time to respond before GET ALL
+   */
+  const startProtocolSequence = useCallback(async () => {
+    // Send GET BATT first per firmware requirements
+    const battOk = await bleRef.current.sendCommand('GET BATT\r\n');
+    if (battOk) {
+      logger.info('🔋 GET BATT sent');
+    }
+    // Wait for firmware to process BATT response before sending next command
+    await new Promise(resolve => setTimeout(resolve, 300));
+    // Then request all logs
+    await requestLogs();
+  }, [requestLogs]);
 
   /**
    * Send GOAL then SYNC
@@ -224,10 +236,10 @@ export function useCoasterSession(config: CoasterSessionConfig) {
         readyTimeoutRef.current = null;
       }
 
-      // If we were waiting for READY, now send GET ALL
+      // If we were waiting for READY, now start protocol sequence
       if (waitingForReadyRef.current) {
         waitingForReadyRef.current = false;
-        requestLogs();
+        startProtocolSequence();
       }
     },
     onDataComplete: (count: number) => {
@@ -311,7 +323,7 @@ export function useCoasterSession(config: CoasterSessionConfig) {
       readyTimeoutRef.current = setTimeout(() => {
         if (waitingForReadyRef.current) {
           waitingForReadyRef.current = false;
-          requestLogs();
+          startProtocolSequence();
         }
       }, BLE_TIMEOUTS.BACKFILL_STABILIZATION_DELAY);
 
@@ -346,7 +358,7 @@ export function useCoasterSession(config: CoasterSessionConfig) {
     readyTimeoutRef.current = setTimeout(() => {
       if (waitingForReadyRef.current) {
         waitingForReadyRef.current = false;
-        requestLogs();
+        startProtocolSequence();
       }
     }, BLE_TIMEOUTS.BACKFILL_STABILIZATION_DELAY);
   // Note: Using session.isActive instead of session object to prevent re-runs
@@ -438,6 +450,7 @@ export function useCoasterSession(config: CoasterSessionConfig) {
     sendGoal,
     sendTimeSync,
     requestLogs,
+    startProtocolSequence,
     requestBattery,
     sendGoalAndSync,
 
