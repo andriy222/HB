@@ -31,12 +31,34 @@ export const useBleScan = () => {
   const autoReconnectAttemptsRef = useRef(0);
   const reconnectTimerRef = useRef<any>(null);
   const reconnectActiveRef = useRef(false);
+  const scanTimeoutRef = useRef<any>(null);
+  const autoConnectingRef = useRef(false);
+  const connectToDeviceRef = useRef<any>(null);
+  const bleStateRef = useRef<string>('Unknown');
 
   const TARGET_NAME = BLE_DEVICE.TARGET_NAME;
   const TARGET_SERVICE = BLE_DEVICE.SERVICE_UUID.toLowerCase();
 
   useEffect(() => {
     managerRef.current = new BleManager();
+
+    // Monitor BLE adapter state for auto-reconnect when BLE powers on
+    const stateSub = managerRef.current.onStateChange((state) => {
+      logger.info(`[BLE] Adapter state: ${state}`);
+      bleStateRef.current = state;
+
+      if (state === 'PoweredOn') {
+        setTimeout(() => {
+          // Skip if reconnect sequence is already active
+          if (reconnectActiveRef.current) return;
+          const lastId = getLastDeviceId();
+          if (lastId && connectToDeviceRef.current) {
+            logger.info(`[BLE] BLE powered on, auto-reconnecting to ${lastId}`);
+            connectToDeviceRef.current(lastId);
+          }
+        }, 1000);
+      }
+    }, true);
 
     // Check for already-connected devices (e.g., from OS-level auto-reconnect after bonding)
     const checkAlreadyConnected = async () => {
@@ -87,10 +109,15 @@ export const useBleScan = () => {
     checkAlreadyConnected();
 
     return () => {
+      stateSub.remove();
       disconnectSubRef.current?.remove();
       if (reconnectTimerRef.current) {
         try { clearTimeout(reconnectTimerRef.current); } catch {}
         reconnectTimerRef.current = null;
+      }
+      if (scanTimeoutRef.current) {
+        try { clearTimeout(scanTimeoutRef.current); } catch {}
+        scanTimeoutRef.current = null;
       }
       managerRef.current?.destroy();
     };
@@ -99,9 +126,14 @@ export const useBleScan = () => {
   const startScan = useCallback(() => {
     if (!managerRef.current) {return;}
     reconnectActiveRef.current = false;
+    autoConnectingRef.current = false;
     if (reconnectTimerRef.current) {
       try { clearTimeout(reconnectTimerRef.current); } catch {}
       reconnectTimerRef.current = null;
+    }
+    if (scanTimeoutRef.current) {
+      try { clearTimeout(scanTimeoutRef.current); } catch {}
+      scanTimeoutRef.current = null;
     }
     setDevices([]);
     setIsScanning(true);
@@ -123,11 +155,24 @@ export const useBleScan = () => {
           setDevices((prev) =>
             prev.some((d) => d.id === device.id) ? prev : [...prev, device],
           );
+
+          // Auto-connect to first matching target device
+          if (!autoConnectingRef.current && connectToDeviceRef.current) {
+            autoConnectingRef.current = true;
+            logger.info(`[BLE] Target found, auto-connecting: ${device.name} (${device.id})`);
+            managerRef.current?.stopDeviceScan();
+            if (scanTimeoutRef.current) {
+              clearTimeout(scanTimeoutRef.current);
+              scanTimeoutRef.current = null;
+            }
+            setIsScanning(false);
+            connectToDeviceRef.current(device.id);
+          }
         }
       }
     });
 
-    setTimeout(() => {
+    scanTimeoutRef.current = setTimeout(() => {
       managerRef.current?.stopDeviceScan();
       setIsScanning(false);
       setNoTargetFound(!foundTargetRef.current);
@@ -138,6 +183,10 @@ export const useBleScan = () => {
     managerRef.current?.stopDeviceScan();
     setIsScanning(false);
     setNoTargetFound(false);
+    if (scanTimeoutRef.current) {
+      clearTimeout(scanTimeoutRef.current);
+      scanTimeoutRef.current = null;
+    }
   }, []);
 
   const disconnect = useCallback(async () => {
@@ -224,6 +273,15 @@ export const useBleScan = () => {
   const connectToDevice = useCallback(
     async (deviceId: string) => {
       if (!managerRef.current) {return null;}
+
+      // Skip if already connected to this device
+      try {
+        const isAlreadyConnected = await managerRef.current.isDeviceConnected(deviceId);
+        if (isAlreadyConnected) {
+          logger.debug(`[BLE] Already connected to ${deviceId}, skipping`);
+          return null;
+        }
+      } catch {}
 
       setConnectError(null);
       setIsConnecting(true);
@@ -333,30 +391,8 @@ export const useBleScan = () => {
     [stopScan, scheduleReconnect],
   );
 
-  // Auto-reconnect to last device if available
-  // Note: On iOS, device UUIDs can change after Bluetooth restart,
-  // so auto-reconnect may fail. In that case, user needs to scan again.
-  useEffect(() => {
-    let cancelled = false;
-    const tryReconnect = async () => {
-      const lastId = await getLastDeviceId();
-      if (!lastId || cancelled) {return;}
-
-      logger.debug(`🔄 Auto-reconnect to last device: ${lastId}`);
-      const device = await connectToDevice(lastId);
-
-      // If auto-reconnect fails on iOS, clear saved ID as UUID may have changed
-      if (!device && Platform.OS === 'ios') {
-        logger.warn('⚠️ iOS auto-reconnect failed, clearing saved device ID');
-        await clearLastDeviceId();
-      }
-    };
-    const t = setTimeout(tryReconnect, 100);
-    return () => {
-      cancelled = true;
-      clearTimeout(t);
-    };
-  }, [connectToDevice]);
+  // Keep ref updated for use in closures (scan callback, BLE state handler)
+  connectToDeviceRef.current = connectToDevice;
 
   // Оновлення глобального стору підключень
   useEffect(() => {

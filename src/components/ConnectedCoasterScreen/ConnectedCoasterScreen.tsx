@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { View, Image, Alert } from "react-native";
 import { Text } from "react-native-paper";
 import PaperButton from "../../UI/PaperButton/PaperButton";
@@ -20,11 +20,62 @@ export default function ConnectCoasterScreen({
 }: ConnectCoasterScreenProps) {
   const [connectionState, setConnectionState] =
     useState<ConnectionState>("idle");
-  const { startScan, devices, connectToDevice, stopScan } =
-    useBle();
+  const {
+    startScan,
+    connectedDevice,
+    linkUp,
+    isConnecting,
+    connectError,
+    noTargetFound,
+  } = useBle();
   const { hasPermission, request } = usePermissions();
+  const onConnectCalledRef = useRef(false);
+
+  // Auto-navigate when connected (from scan auto-connect or background auto-reconnect)
+  useEffect(() => {
+    if (linkUp && connectedDevice && !onConnectCalledRef.current) {
+      onConnectCalledRef.current = true;
+      logger.info("Connected successfully:", connectedDevice.id);
+      setConnectionState("success");
+      setTimeout(() => {
+        onConnect();
+      }, 2000);
+    }
+  }, [linkUp, connectedDevice, onConnect]);
+
+  // Update connection state when BLE starts connecting
+  useEffect(() => {
+    if (isConnecting && connectionState === "scanning") {
+      setConnectionState("connecting");
+    }
+  }, [isConnecting, connectionState]);
+
+  // Handle scan timeout - no device found
+  useEffect(() => {
+    if (noTargetFound && connectionState === "scanning") {
+      Alert.alert(
+        "Device Not Found",
+        "Could not find Hybit coaster. Make sure it's powered on and in pairing mode (press Bluetooth button for 3 seconds).",
+        [{ text: "OK", onPress: () => setConnectionState("idle") }]
+      );
+    }
+  }, [noTargetFound, connectionState]);
+
+  // Handle connection errors
+  useEffect(() => {
+    if (
+      connectError &&
+      (connectionState === "scanning" || connectionState === "connecting")
+    ) {
+      Alert.alert(
+        "Connection Failed",
+        "Could not connect to the device. Please try again.",
+        [{ text: "OK", onPress: () => setConnectionState("idle") }]
+      );
+    }
+  }, [connectError, connectionState]);
+
   const handleConnect = async () => {
-    // Перевірити дозволи
     if (!hasPermission) {
       const granted = await request();
 
@@ -39,85 +90,7 @@ export default function ConnectCoasterScreen({
     }
 
     setConnectionState("scanning");
-
-    // Почати сканування
     startScan();
-
-    // Почекати для знаходження пристроїв
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-
-    // Зупинити сканування
-    stopScan();
-
-    logger.info("Found devices:", devices.length, devices);
-
-    // Перевірити чи знайшли пристрій
-    if (!devices || devices.length === 0) {
-      Alert.alert(
-        "Device Not Found",
-        "Could not find Hybit coaster. Make sure it's powered on and in pairing mode (press Bluetooth button for 3 seconds).",
-        [{ text: "OK", onPress: () => setConnectionState("idle") }]
-      );
-      return;
-    }
-    const firstDevice = devices[0];
-    if (!firstDevice?.id) {
-      Alert.alert("Error", "Device ID not found", [
-        { text: "OK", onPress: () => setConnectionState("idle") },
-      ]);
-      return;
-    }
-
-    setConnectionState("connecting");
-
-    Alert.alert(
-      "Bluetooth Pairing Request",
-      `"${
-        firstDevice.name || "Hybit coaster"
-      }" would like to pair with your iPhone.`,
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-          onPress: () => {
-            setConnectionState("idle");
-          },
-        },
-        {
-          text: "Pair",
-
-          onPress: async () => {
-            if (!firstDevice.id) {
-              throw new Error("Device ID is missing");
-            }
-            try {
-              logger.info("Connecting to device:", firstDevice.id);
-
-              const device = await connectToDevice(firstDevice.id);
-
-              if (device) {
-                logger.info("Connected successfully:", device.id);
-                setConnectionState("success");
-
-                setTimeout(() => {
-                  onConnect();
-                }, 2000);
-              } else {
-                throw new Error("Connection returned null");
-              }
-            } catch (error) {
-              logger.error("Connection error:", error);
-              Alert.alert(
-                "Connection Failed",
-                "Could not connect to the device. Please try again.",
-                [{ text: "OK", onPress: () => setConnectionState("idle") }]
-              );
-              setConnectionState("idle");
-            }
-          },
-        },
-      ]
-    );
   };
 
   return (
@@ -141,7 +114,9 @@ export default function ConnectCoasterScreen({
           </PaperButton>
         )}
 
-        {connectionState === "scanning" && <View style={styles.dot} />}
+        {(connectionState === "scanning" || connectionState === "connecting") && (
+          <View style={styles.dot} />
+        )}
 
         {connectionState === "success" && <View style={styles.successCircle} />}
       </View>

@@ -180,6 +180,10 @@ export function useCoasterSession(config: CoasterSessionConfig) {
     }
     getAllInProgressRef.current = true;
 
+    // Send GET BATT first to get battery level (required before GET ALL)
+    await bleRef.current.sendCommand('GET BATT\r\n');
+    logger.info('🔋 GET BATT sent');
+
     protocolRef.current.startDataTransfer();
     const ok = await bleRef.current.sendCommand('GET ALL\r\n');
     if (ok) {
