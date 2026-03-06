@@ -138,6 +138,7 @@ export const useBleScan = () => {
     setDevices([]);
     setIsScanning(true);
     setNoTargetFound(false);
+    setConnectError(null);
     foundTargetRef.current = false;
 
     managerRef.current.startDeviceScan(null, null, (error, device) => {

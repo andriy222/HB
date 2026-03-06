@@ -30,6 +30,8 @@ export default function ConnectCoasterScreen({
   } = useBle();
   const { hasPermission, request } = usePermissions();
   const onConnectCalledRef = useRef(false);
+  // Track whether user initiated the connection (to ignore background auto-reconnect errors)
+  const userInitiatedRef = useRef(false);
 
   // Auto-navigate when connected (from scan auto-connect or background auto-reconnect)
   useEffect(() => {
@@ -61,12 +63,14 @@ export default function ConnectCoasterScreen({
     }
   }, [noTargetFound, connectionState]);
 
-  // Handle connection errors
+  // Handle connection errors (only for user-initiated connections)
   useEffect(() => {
     if (
       connectError &&
+      userInitiatedRef.current &&
       (connectionState === "scanning" || connectionState === "connecting")
     ) {
+      userInitiatedRef.current = false;
       Alert.alert(
         "Connection Failed",
         "Could not connect to the device. Please try again.",
@@ -89,6 +93,7 @@ export default function ConnectCoasterScreen({
       }
     }
 
+    userInitiatedRef.current = true;
     setConnectionState("scanning");
     startScan();
   };
